@@ -344,6 +344,29 @@ async def search_web(query: str, engine: str = "tavily") -> str:
 
 ---
 
+## 九、自监控与自愈系统
+
+### 9.1 Self-Healing AI Agents
+
+**来源**: [How Self-Healing AI Agents Are Revolutionizing IT](https://web.superagi.com/how-self-healing-ai-agents-are-revolutionizing-it-healthcare-and-manufacturing-real-world-case-studies/)
+
+**核心能力**:
+1. **自主监控与诊断** - 监控系统状态，诊断问题
+2. **自动修复** - 实施修复措施
+3. **持续优化** - 从经验中学习改进
+
+### 9.2 实施模式
+
+| 模式 | 描述 | 当前实现 |
+|------|------|---------|
+| 健康检查 | 定期检查系统组件状态 | ✅ SocialMaintenanceTask |
+| 错误分析 | 分析错误模式 | ✅ SelfReflectionTask |
+| 技能更新 | 动态加载新技能 | ✅ SkillUpdateTask |
+| 告警通知 | 系统异常告警 | ✅ NotificationCheckTask |
+| 知识积累 | 保存学习成果 | ✅ KnowledgeOutputTask |
+
+---
+
 ## 八、可观测性系统最佳实践
 
 ### 8.1 Microsoft AI Agents for Beginners

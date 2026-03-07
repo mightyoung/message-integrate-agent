@@ -31,9 +31,19 @@
 - [x] 9.1 实现 HeartbeatEngine 心跳引擎
 - [x] 9.2 实现7步认知循环 (信息摄入、价值判断、知识输出、社交维护、自我反思、技能更新、通知检查)
 - [x] 9.3 集成到主程序
+- [x] 9.4 加强任务实现（真实功能）
 
 **产出**:
-- `src/heartbeat/engine.py` - 心跳循环引擎
+- `src/heartbeat/engine.py` - 心跳循环引擎（增强版）
+
+**增强内容**:
+- InformationIntakeTask: 调用search_web获取真实信息
+- ValueJudgmentTask: 规则评分系统
+- KnowledgeOutputTask: 保存见解到.learnings/
+- SocialMaintenanceTask: 检查平台健康状态
+- SelfReflectionTask: 分析指标和反馈
+- SkillUpdateTask: 动态加载技能
+- NotificationCheckTask: 系统健康告警
 
 ---
 
