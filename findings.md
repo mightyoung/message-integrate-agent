@@ -277,7 +277,61 @@ async def search_web(query: str, engine: str = "tavily") -> str:
 
 ---
 
-## 结论
+## 五、Agentic AI 架构模式 (2025最新)
+
+### 5.1 Ali Shamaei - 核心执行模式
+
+**来源**: [The Architecture Behind Autonomous AI Agents](https://ashamaei.medium.com/the-architecture-behind-autonomous-ai-agents-core-execution-patterns-c9eead631f79)
+
+| 模式 | 描述 | 当前项目 |
+|------|------|---------|
+| **Reflection** | 自我反思和评估 | ✅ 已实现 (HeartbeatStep.SELF_REFLECTION) |
+| **Routing** | 动态路由到专家 | ✅ 已实现 |
+| **Parallelisation** | 并行执行独立任务 | ⚠️ 部分实现 |
+| **Tool Use** | 外部工具调用 | ✅ 已实现 (MCP Tools) |
+| **Planning** | 分解复杂目标 | ❌ 缺失 |
+| **Multi-Agent Collaboration** | 多Agent协作 | ⚠️ 已实现框架 |
+
+### 5.2 腾讯云 - 自进化机制
+
+**来源**: [How to implement the self-evolution mechanism of AI Agent?](https://www.tencentcloud.com/techpedia/126465)
+
+**6大核心组件**:
+1. **Continuous Learning** - 实时或周期性学习
+2. **Feedback Loop** - 用户反馈/奖励信号
+3. **Memory & Knowledge** - 短期/长期记忆
+4. **Meta-Learning** - 学习如何学习
+5. **Self-Reflection** - 周期性自我评估
+6. **Autonomous Goal Setting** - 动态目标设定
+
+**实施步骤**:
+1. 设计模块化架构
+2. 集成在线学习算法
+3. 嵌入反馈机制
+4. 启用记忆系统
+5. 应用元学习
+6. 部署自监控工具
+7. 确保安全和对齐
+
+---
+
+## 六、当前项目关键问题
+
+### 🔴 P0 - 致命问题
+
+| 问题 | 位置 | 描述 |
+|------|------|------|
+| 变量未定义 | main.py:46 | `feishu_config` 在定义前使用 |
+| 模块未集成 | main.py | HeartbeatEngine等4个核心模块未启动 |
+| 持久化缺失 | docker-compose.yml | .learnings目录未挂载 |
+
+### 🟡 P1 - 重要问题
+
+| 问题 | 描述 |
+|------|------|
+| 全局单例 | 难以测试，状态难以控制 |
+| Stub实现 | Heartbeat各task是模拟数据 |
+| 缺少Planning | 未实现复杂目标分解 |
 
 **选择方案A (Gateway + MCP)** 理由:
 1. MCP是标准协议，生态成熟

@@ -86,7 +86,27 @@
 
 ## 技术债务
 
-1. ✅ 已修复: main.py 中变量定义顺序问题
-2. ✅ 已实现: Agent 间通信协议
-3. ✅ 已实现: 主动推送系统
-4. [ ] Docker 配置优化
+1. ✅ 已修复: main.py 中变量定义顺序问题 (第46行使用feishu_config，第57行才定义)
+2. ✅ 已修复: 核心模块集成到lifespan (HeartbeatEngine, ExperienceLogger, PushService, AgentCommunicator)
+3. ✅ 已修复: docker-compose.yml 添加 .learnings 持久化挂载
+4. ✅ 已修复: 添加日志收集配置
+
+---
+
+## 最新发现 (2026-03-08)
+
+### 行业最佳实践
+
+1. **Agentic Design Patterns** - Ali Shamaei (Google)
+   - 21个可复用设计模式
+   - 核心执行模式: Reflection, Routing, Parallelisation, Tool Use, Planning, Multi-Agent Collaboration
+   - 记忆与学习模式: 使AI能够从每次交互中学习和进化
+
+2. **自进化机制** - 腾讯云技术白皮书
+   - 6大核心组件: Continuous Learning, Feedback Loop, Memory, Meta-Learning, Self-Reflection, Autonomous Goal Setting
+   - 实施步骤: 架构设计 → 在线学习 → 反馈机制 → 记忆系统 → 元学习 → 自监控 → 安全对齐
+
+3. **参考项目**:
+   - OpenClaw: 心跳循环 + 经验日志
+   - TrendRadar: 多通道消息聚合
+   - Claude Code: Agent能力扩展

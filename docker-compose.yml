@@ -10,6 +10,7 @@ services:
     volumes:
       - ./config:/app/config
       - ./logs:/app/logs
+      - ./.learnings:/app/.learnings
     env_file:
       - .env
     environment:
@@ -22,6 +23,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
 
   # Optional: Proxy service (v2ray)
   # proxy:

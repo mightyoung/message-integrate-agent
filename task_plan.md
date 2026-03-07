@@ -102,15 +102,20 @@
 
 ---
 
-### 阶段 15: Docker 部署优化 [pending]
+### 阶段 15: Docker 部署优化 [completed]
 
 **目标**: 完善 Docker 部署配置
 
 **任务**:
-- [ ] 15.1 优化 Dockerfile (多阶段构建)
-- [ ] 15.2 完善 docker-compose.yml
-- [ ] 15.3 添加健康检查
-- [ ] 15.4 配置日志收集
+- [x] 15.1 优化 Dockerfile (多阶段构建) - 已完成
+- [x] 15.2 修复 main.py 变量定义顺序Bug (P0)
+- [x] 15.3 集成核心模块到 main.py lifespan (P0)
+- [x] 15.4 完善 docker-compose.yml (添加.learnings挂载)
+- [x] 15.5 配置日志收集
+
+**产出**:
+- `src/main.py` - 修复变量Bug，集成核心模块
+- `docker-compose.yml` - 添加持久化和日志配置
 
 ---
 

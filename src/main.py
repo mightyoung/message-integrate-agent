@@ -34,6 +34,10 @@ async def lifespan(app: dict):
     # Initialize adapter registry
     adapter_registry = get_adapter_registry()
 
+    # Load feishu config first (before using it)
+    feishu_config = config.feishu.model_dump()
+    feishu_config["webhook_url"] = os.environ.get("FEISHU_WEBHOOK_URL")
+
     # Register platform adapters
     adapter_registry.register_adapter_class(
         "telegram",
@@ -53,9 +57,6 @@ async def lifespan(app: dict):
     logger.info(f"Registered adapters: {adapter_registry.list_adapters()}")
 
     # Initialize and start WebSocket gateway
-    import os
-    feishu_config["webhook_url"] = os.environ.get("FEISHU_WEBHOOK_URL")
-
     platform_configs = {
         "telegram": config.telegram.model_dump(),
         "feishu": feishu_config,
@@ -111,15 +112,61 @@ async def lifespan(app: dict):
     await mcp_server.run_sse(host="0.0.0.0", port=8081)
     logger.info(f"MCP server started on port 8081")
 
+    # ========================================
+    # Initialize and start core modules
+    # ========================================
+
+    # Heartbeat Engine - Self-evolution heartbeat
+    from src.heartbeat.engine import get_heartbeat_engine
+    heartbeat_engine = get_heartbeat_engine()
+    await heartbeat_engine.start()
+    app["heartbeat_engine"] = heartbeat_engine
+    logger.info("💓 Heartbeat engine started")
+
+    # Experience Logger - Structured learning memory
+    from src.memory.experience_logger import ExperienceLogger
+    experience_logger = ExperienceLogger()
+    app["experience_logger"] = experience_logger
+    logger.info("📚 Experience logger initialized")
+
+    # Push Service - Active push to users
+    from src.push import PushService
+    push_service = PushService(adapter_registry)
+    await push_service.initialize()
+    app["push_service"] = push_service
+    logger.info("📢 Push service initialized")
+
+    # Agent Communicator - Agent-to-agent communication
+    from src.agent_comm import get_agent_communicator, get_service_registry
+    agent_communicator = get_agent_communicator()
+    service_registry = get_service_registry()
+    await service_registry.start_health_check()
+    app["agent_communicator"] = agent_communicator
+    app["service_registry"] = service_registry
+    logger.info("🔗 Agent communicator initialized")
+
     yield
 
     # Shutdown
     logger.info("Shutting down...")
+
+    # Stop core modules in reverse order
+    if "heartbeat_engine" in app:
+        await app["heartbeat_engine"].stop()
+        logger.info("💓 Heartbeat engine stopped")
+
+    if "push_service" in app:
+        await app["push_service"].shutdown()
+        logger.info("📢 Push service stopped")
+
+    if "service_registry" in app:
+        await app["service_registry"].stop_health_check()
+        logger.info("🔗 Service registry stopped")
+
     await gateway.stop()
     # Stop MCP server
     if "mcp_server" in app:
         await app["mcp_server"].stop()
-    logger.info("Shutdown complete")
     logger.info("Shutdown complete")
 
 
