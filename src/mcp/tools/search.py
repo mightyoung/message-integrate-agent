@@ -32,7 +32,8 @@ def _create_client(proxies: dict = None) -> httpx.AsyncClient:
                 client_kwargs["proxy"] = list(proxies.values())[0] if proxies else None
             else:
                 client_kwargs["proxies"] = proxies
-        except:
+        except (AttributeError, ValueError, TypeError) as e:
+            # Fallback to proxies dict for older versions
             client_kwargs["proxies"] = proxies
     return httpx.AsyncClient(**client_kwargs)
 

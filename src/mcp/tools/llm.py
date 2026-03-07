@@ -68,7 +68,8 @@ async def chat_with_llm(
                 client_kwargs["proxy"] = list(proxies.values())[0] if proxies else None
             else:
                 client_kwargs["proxies"] = proxies
-        except:
+        except (AttributeError, ValueError, TypeError):
+            # Fallback to proxies dict for older versions
             client_kwargs["proxies"] = proxies
 
     try:
@@ -153,7 +154,8 @@ async def chat_with_anthropic(
                 client_kwargs["proxy"] = list(proxies.values())[0] if proxies else None
             else:
                 client_kwargs["proxies"] = proxies
-        except:
+        except (AttributeError, ValueError, TypeError):
+            # Fallback to proxies dict for older versions
             client_kwargs["proxies"] = proxies
 
     try:
