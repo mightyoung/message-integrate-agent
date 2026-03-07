@@ -75,30 +75,30 @@
 
 ## 新增阶段：架构增强 (P1)
 
-### 阶段 13: Agent 间通信 [pending]
+### 阶段 13: Agent 间通信 [completed]
 
 **目标**: 实现接收网络内其他 agent 或后端服务的信息
 
 **任务**:
-- [ ] 13.1 实现 Agent Registry 协议
-- [ ] 13.2 实现服务发现机制
-- [ ] 13.3 实现 RPC 通信层
-- [ ] 13.4 实现消息队列支持
+- [x] 13.1 实现 Agent Registry 协议
+- [x] 13.2 实现服务发现机制
+- [x] 13.3 实现 RPC 通信层
+- [x] 13.4 实现消息队列支持
 
 **产出**:
 - `src/agent_comm/` - Agent 通信模块
 
 ---
 
-### 阶段 14: 主动推送能力 [pending]
+### 阶段 14: 主动推送能力 [completed]
 
 **目标**: 支持主动向用户推送消息
 
 **任务**:
-- [ ] 14.1 实现用户状态追踪
-- [ ] 14.2 实现消息队列管理
-- [ ] 14.3 实现推送策略引擎
-- [ ] 14.4 集成飞书/微信主动推送
+- [x] 14.1 实现用户状态追踪
+- [x] 14.2 实现消息队列管理
+- [x] 14.3 实现推送策略引擎
+- [x] 14.4 集成飞书/微信主动推送
 
 ---
 
@@ -131,6 +131,25 @@
 
 **产出**:
 - `src/feedback/__init__.py` - 反馈服务
+
+---
+
+### 阶段 17: 可观测性系统 [completed]
+
+**目标**: 生产环境监控与可观测性
+
+**任务**:
+- [x] 17.1 实现 Metrics 指标收集
+- [x] 17.2 实现 Tracing 链路追踪
+- [x] 17.3 健康检查端点增强
+
+**产出**:
+- `src/observability/__init__.py` - 可观测性服务
+
+**参考**:
+- Microsoft AI Agents for Beginners: Observability
+- LangChain Production Monitoring
+- Top 10 Metrics for AI Agent Performance
 
 ---
 

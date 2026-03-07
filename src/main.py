@@ -152,6 +152,12 @@ async def lifespan(app: dict):
     app["feedback_service"] = feedback_service
     logger.info("📊 Feedback service initialized")
 
+    # Observability Service - Metrics and monitoring
+    from src.observability import get_observability_service
+    observability = get_observability_service()
+    app["observability"] = observability
+    logger.info("📈 Observability service initialized")
+
     yield
 
     # Shutdown

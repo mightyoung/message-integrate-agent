@@ -83,6 +83,7 @@
 | `src/agent_comm/protocol.py` | 通信协议定义 |
 | `src/push/__init__.py` | 主动推送系统 |
 | `src/feedback/__init__.py` | 用户反馈系统 |
+| `src/observability/__init__.py` | 可观测性系统 |
 | `docs/analysis_report.md` | 深度分析报告 |
 
 ---

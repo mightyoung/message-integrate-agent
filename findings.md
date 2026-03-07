@@ -342,6 +342,47 @@ async def search_web(query: str, engine: str = "tavily") -> str:
 2. 实时满意度按钮
 3. 行为数据采集
 
+---
+
+## 八、可观测性系统最佳实践
+
+### 8.1 Microsoft AI Agents for Beginners
+
+**来源**: [AI Agents in Production: Observability & Evaluation](https://microsoft.github.io/ai-agents-for-beginners/10-ai-agents-production/)
+
+**核心可观测性指标**:
+1. **延迟 (Latency)** - 请求响应时间
+2. **错误率 (Error Rate)** - 失败请求百分比
+3. **工具调用成功率** - 外部工具调用成功率
+4. **Token使用量** - 成本追踪
+5. **路由决策准确率** - 路由质量评估
+
+### 8.2 LangChain 生产监控
+
+**来源**: [Agent Observability](https://www.langchain.com/conceptual-guides/production-monitoring)
+
+**与传统可观测性的区别**:
+- Agent需要追踪输入→推理→输出完整链路
+- 需要记录每个tool call的输入输出
+- 需要追踪状态变化和决策点
+
+### 8.3 十大关键指标
+
+**来源**: [Top 10 Metrics for AI Agent Performance](https://dev.to/kuldeep_paul/top-10-metrics-to-monitor-for-reliable-ai-agent-performance-4b36)
+
+| 指标 | 描述 |
+|------|------|
+| 1. Request Latency | 请求延迟 |
+| 2. Error Rate | 错误率 |
+| 3. Tool Call Success Rate | 工具调用成功率 |
+| 4. Token Usage | Token使用量 |
+| 5. Cost per Request | 单次请求成本 |
+| 6. Routing Accuracy | 路由准确率 |
+| 7. User Satisfaction | 用户满意度 |
+| 8. Recovery Time | 故障恢复时间 |
+| 9. Throughput | 吞吐量 |
+| 10. Queue Depth | 队列深度 |
+
 ### 🔴 P0 - 致命问题
 
 | 问题 | 位置 | 描述 |
