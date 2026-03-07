@@ -1,0 +1,33 @@
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: message-hub-gateway
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - NO_PROXY=${NO_PROXY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Proxy service (v2ray)
+  # proxy:
+  #   image: v2fly/v2ray-core
+  #   container_name: message-hub-proxy
+  #   volumes:
+  #     - ./config/v2ray:/etc/v2ray
+  #   network_mode: "service:gateway"
+  #   restart: unless-stopped

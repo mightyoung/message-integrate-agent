@@ -1,0 +1,25 @@
+# Core dependencies
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+websockets>=14.0
+httpx[socks]>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+
+# MCP
+mcp[cli]>=1.1.0
+
+# Messaging platforms
+aiogram>=3.4.0
+httpx
+
+# Logging
+loguru>=0.7.0
+
+# Async
+asyncio
+
+# Retry and resilience
+tenacity>=8.2.0

@@ -1,0 +1,67 @@
+# Proxy Configuration
+
+# Environment-based proxy (used by default)
+env_proxy:
+  http: "${HTTP_PROXY}"
+  https: "${HTTPS_PROXY}"
+  no_proxy: "${NO_PROXY}"
+
+# Custom proxy servers
+proxies:
+  - name: "vmess-primary"
+    type: "vmess"
+    enabled: true
+    server: "${VMESS_SERVER}"
+    port: 443
+    uuid: "${VMESS_UUID}"
+    alter_id: 0
+    network: "tcp"
+    security: "auto"
+
+  - name: "ss-backup"
+    type: "shadowsocks"
+    enabled: false
+    server: "${SS_SERVER}"
+    port: 8388
+    password: "${SS_PASSWORD}"
+    cipher: "aes-256-gcm"
+
+# Domain-based routing rules
+routing:
+  # Domains that should use proxy
+  proxy_domains:
+    - "*.google.com"
+    - "*.googleapis.com"
+    - "*.googleusercontent.com"
+    - "*.youtube.com"
+    - "*.googlevideo.com"
+    - "tavily.com"
+    - "api.tavily.com"
+    - "github.com"
+    - "api.github.com"
+
+  # Domains that should bypass proxy (direct connection)
+  direct_domains:
+    - "*.baidu.com"
+    - "*.taobao.com"
+    - "*.qq.com"
+    - "api.openai.com"
+    - "api.anthropic.com"
+    - "localhost"
+    - "127.0.0.1"
+
+  # Fallback mode when no matching rule
+  fallback: "proxy"
+
+# Health check settings
+health_check:
+  enabled: true
+  interval: 60  # seconds
+  timeout: 10   # seconds
+  url: "https://www.google.com/generate_204"
+
+# Auto-failover settings
+failover:
+  enabled: true
+  max_retries: 3
+  retry_delay: 1  # seconds

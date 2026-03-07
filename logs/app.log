@@ -1,0 +1,181 @@
+2026-03-07 21:51:10 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 21:51:57 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 21:51:57 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 21:51:57 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 21:51:57 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 21:51:57 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 21:51:57 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 21:51:57 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 21:51:57 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 21:51:57 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 21:51:57 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 21:51:57 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 21:51:57 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 21:51:57 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 21:51:57 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 21:51:57 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 21:51:57 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 21:51:57 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 21:51:57 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 21:51:57 | INFO     | __main__:lifespan:89 - MCP server started on port 8081
+2026-03-07 21:51:58 | INFO     | src.mcp.server:run_sse:51 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 21:51:58 | INFO     | src.mcp.server:_run_sse_thread:43 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 21:51:58 | ERROR    | src.mcp.server:_run_sse_thread:47 - MCP server error: FastMCP.run() got an unexpected keyword argument 'host'
+2026-03-07 21:51:58 | INFO     | src.mcp.server:run_sse:60 - MCP server started in background thread
+2026-03-07 22:03:50 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:03:50 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:03:50 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:03:50 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:03:50 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:03:51 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:03:51 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:03:51 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:03:51 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:03:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:03:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:03:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:03:51 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:03:51 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:03:51 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:03:51 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:03:51 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:03:51 | INFO     | src.mcp.server:_setup_tools:36 - MCP tools registered
+2026-03-07 22:03:51 | INFO     | src.mcp.server:run_sse:69 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:03:51 | INFO     | src.mcp.server:mount_to_app:45 - Mounting MCP server (message-hub) to FastAPI app at /mcp
+2026-03-07 22:04:07 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:04:07 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:04:07 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:04:07 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:04:07 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:04:07 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:04:07 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:04:07 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:04:07 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:04:07 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:04:07 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:04:07 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:04:07 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:04:07 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:04:07 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:04:07 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:04:07 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:04:07 | INFO     | src.mcp.server:_setup_tools:36 - MCP tools registered
+2026-03-07 22:04:07 | INFO     | src.mcp.server:run_sse:82 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:04:07 | INFO     | src.mcp.server:mount_to_app:45 - Mounting MCP server (message-hub) to FastAPI app at /mcp
+2026-03-07 22:04:51 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:04:51 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:04:51 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:04:51 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:04:51 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:04:51 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:04:51 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:04:51 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:04:51 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:04:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:04:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:04:51 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:04:51 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:04:51 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:04:51 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:04:51 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:04:51 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:04:51 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 22:04:51 | INFO     | src.mcp.server:run_sse:64 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:04:51 | INFO     | src.mcp.server:_run_sse_thread:46 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 22:04:51 | INFO     | src.mcp.server:run_sse:73 - MCP server started in background thread
+2026-03-07 22:04:51 | INFO     | __main__:lifespan:89 - MCP server started on port 8081
+2026-03-07 22:07:28 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:07:28 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:07:48 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:07:48 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:07:48 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:07:48 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:07:48 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:07:48 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:07:48 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:07:48 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:07:48 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:07:48 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:07:48 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:07:48 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:07:48 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:07:48 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:07:48 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:07:48 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:07:48 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:07:48 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 22:07:48 | INFO     | src.mcp.server:run_sse:64 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:07:48 | INFO     | src.mcp.server:_run_sse_thread:46 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 22:07:48 | INFO     | src.mcp.server:run_sse:73 - MCP server started in background thread
+2026-03-07 22:07:48 | INFO     | __main__:lifespan:89 - MCP server started on port 8081
+2026-03-07 22:09:05 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:09:05 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:09:05 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:09:08 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:09:08 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:09:08 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:09:08 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:09:08 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:09:08 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:09:08 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:09:08 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:09:08 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:09:08 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:09:08 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:09:08 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:09:08 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:09:08 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:09:08 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:09:08 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:09:08 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:09:08 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 22:09:08 | INFO     | src.mcp.server:run_sse:59 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:09:08 | INFO     | src.mcp.server:_run_sse_thread:45 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 22:09:08 | INFO     | src.mcp.server:run_sse:68 - MCP server started in background thread
+2026-03-07 22:09:08 | INFO     | __main__:lifespan:89 - MCP server started on port 8081
+2026-03-07 22:09:41 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:09:41 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:09:41 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:09:41 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:09:41 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:09:41 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:09:41 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:09:41 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:09:41 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:09:41 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:09:41 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:09:41 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:09:41 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:09:41 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:09:41 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:09:41 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:09:41 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:09:41 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 22:09:41 | INFO     | src.mcp.server:run_sse:59 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:09:41 | INFO     | src.mcp.server:_run_sse_thread:45 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 22:09:41 | INFO     | src.mcp.server:run_sse:68 - MCP server started in background thread
+2026-03-07 22:09:41 | INFO     | __main__:lifespan:89 - MCP server started on port 8081
+2026-03-07 22:15:14 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:15:14 | INFO     | __main__:shutdown:138 - Received signal 2, initiating shutdown...
+2026-03-07 22:26:55 | INFO     | __main__:lifespan:18 - Starting Message Integrate Agent...
+2026-03-07 22:26:55 | INFO     | __main__:lifespan:23 - Configuration loaded: 0.0.0.0:8080
+2026-03-07 22:26:55 | INFO     | src.proxy.manager:_load_config:35 - Proxy config loaded from config/proxy.yaml
+2026-03-07 22:26:55 | INFO     | src.proxy.manager:__init__:28 - Proxy configured - HTTP: http://127.0.0.1:10808, HTTPS: http://127.0.0.1:10808
+2026-03-07 22:26:55 | INFO     | __main__:lifespan:28 - Proxy manager initialized
+2026-03-07 22:26:55 | INFO     | src.agents.pool:_initialize_agents:28 - Initialized 3 agents
+2026-03-07 22:26:55 | INFO     | src.router.registry:register:62 - Registered agent: llm
+2026-03-07 22:26:55 | INFO     | src.router.registry:register:62 - Registered agent: search
+2026-03-07 22:26:55 | INFO     | src.router.registry:register:62 - Registered agent: api
+2026-03-07 22:26:55 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['天气', 'weather'] -> search
+2026-03-07 22:26:55 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['翻译', 'translate'] -> llm
+2026-03-07 22:26:55 | INFO     | src.router.keyword_router:add_rule:46 - Added keyword rule: ['搜索', 'search', '查'] -> search
+2026-03-07 22:26:55 | INFO     | src.gateway.websocket_server:set_agent_pool:317 - Agent pool connected to gateway
+2026-03-07 22:26:55 | INFO     | src.gateway.websocket_server:set_routers:323 - Routers connected to gateway
+2026-03-07 22:26:55 | INFO     | src.gateway.websocket_server:set_agent_registry:328 - Agent registry connected to gateway
+2026-03-07 22:26:55 | INFO     | src.gateway.websocket_server:start:342 - Gateway server started on 0.0.0.0:8080
+2026-03-07 22:26:55 | INFO     | __main__:lifespan:77 - WebSocket gateway started
+2026-03-07 22:26:55 | INFO     | src.mcp.server:_setup_tools:34 - MCP tools registered
+2026-03-07 22:26:55 | INFO     | src.mcp.server:run_sse:59 - Starting MCP server (message-hub) on 0.0.0.0:8081
+2026-03-07 22:26:55 | INFO     | src.mcp.server:_run_sse_thread:45 - MCP server thread starting on 0.0.0.0:8081
+2026-03-07 22:26:55 | INFO     | src.mcp.server:run_sse:68 - MCP server started in background thread
+2026-03-07 22:26:55 | INFO     | __main__:lifespan:89 - MCP server started on port 8081

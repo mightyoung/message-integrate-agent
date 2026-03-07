@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "message-hub": {
+      "url": "http://localhost:8081/messages/"
+    }
+  }
+}
