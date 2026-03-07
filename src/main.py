@@ -2,6 +2,7 @@
 Message Integrate Agent - Main Entry Point
 """
 import asyncio
+import os
 import signal
 from contextlib import asynccontextmanager
 
@@ -144,6 +145,12 @@ async def lifespan(app: dict):
     app["agent_communicator"] = agent_communicator
     app["service_registry"] = service_registry
     logger.info("🔗 Agent communicator initialized")
+
+    # Feedback Service - User feedback collection
+    from src.feedback import get_feedback_service
+    feedback_service = get_feedback_service(experience_logger)
+    app["feedback_service"] = feedback_service
+    logger.info("📊 Feedback service initialized")
 
     yield
 

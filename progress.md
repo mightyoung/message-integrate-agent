@@ -29,10 +29,12 @@
 - [x] 11.1 Skills 动态加载 - `src/skills/loader.py`
 - [x] 12.1 自学习路由 - `src/router/self_learning.py`
 
-### ⏳ 阶段 14-16: 待实施
+### ✅ 阶段 16: 用户反馈系统 (已完成)
 
-- [ ] 14. Docker 部署优化
-- [ ] 15. 用户反馈系统
+- [x] 16.1 反馈收集接口 (FeedbackService)
+- [x] 16.2 评分机制 (thumbs_up/down, rating)
+- [x] 16.3 集成到经验日志 (correction -> ExperienceLogger)
+- [x] 16.4 反馈统计 (FeedbackStats)
 
 ### ✅ 阶段 13: Agent 间通信 (已完成)
 
@@ -80,6 +82,7 @@
 | `src/agent_comm/__init__.py` | Agent 通信模块 |
 | `src/agent_comm/protocol.py` | 通信协议定义 |
 | `src/push/__init__.py` | 主动推送系统 |
+| `src/feedback/__init__.py` | 用户反馈系统 |
 | `docs/analysis_report.md` | 深度分析报告 |
 
 ---

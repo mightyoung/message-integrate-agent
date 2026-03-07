@@ -315,7 +315,32 @@ async def search_web(query: str, engine: str = "tavily") -> str:
 
 ---
 
-## 六、当前项目关键问题
+## 七、用户反馈系统最佳实践
+
+### 7.1 Datagrid 7条建议
+
+**来源**: [7 Tips to Build Self-Improving AI Agents](https://www.datagrid.com/blog/7-tips-build-self-improving-ai-agents-feedback-loops)
+
+| 建议 | 描述 |
+|------|------|
+| Tip #1 | Safe Memory Evolution - 版本控制、验证、隔离 |
+| Tip #2 | Validate Feedback Quality - 多步验证、路由到正确组件 |
+| Tip #3 | Safe Planning Evolution - 隔离规划模块、渐进式部署 |
+| Tip #4 | Monitor Reasoning Chain - 完整可观测性 |
+| Tip #5 | Tool-Use Evolution - 工具使用反馈边界 |
+
+### 7.2 腾讯云 - 用户反馈机制
+
+**来源**: [How can AI agents continuously improve through user feedback?](https://www.tencentcloud.com/techpedia/126688)
+
+**用户反馈类型**:
+1. **显式反馈** - 用户直接评价（评分、 thumbs up/down）
+2. **隐式反馈** - 用户行为分析（停留时间、再次访问）
+
+**反馈收集机制**:
+1. 会话结束时的评分请求
+2. 实时满意度按钮
+3. 行为数据采集
 
 ### 🔴 P0 - 致命问题
 
