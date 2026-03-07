@@ -230,8 +230,18 @@ message-integrate-agent/src/
 
 ---
 
-## 下一步
+## 代码质量改进 (P0-P1)
 
-优先实施阶段 13-14：
-1. Agent 间通信 (接收 trenradar、bettafish 等信息)
-2. 主动推送能力 (通过飞书等通道)
+### 阶段 18: 代码质量提升 [in_progress]
+
+**目标**: 修复代码中的反模式，提升代码质量
+
+**任务**:
+- [x] 18.1 修复裸 except (P0) - 3处
+- [ ] 18.2 添加类型提示 (P1)
+- [ ] 18.3 配置外部化 (P1)
+- [ ] 18.4 优化模块导入 (P1)
+
+**已完成修复**:
+- `src/mcp/tools/search.py` - except: → except (AttributeError, ValueError, TypeError)
+- `src/mcp/tools/llm.py` - except: → except (AttributeError, ValueError, TypeError)

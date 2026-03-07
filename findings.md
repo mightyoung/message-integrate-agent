@@ -427,3 +427,75 @@ async def search_web(query: str, engine: str = "tavily") -> str:
 2. 参考TrendRadar已有成功案例
 3. Docker部署友好
 4. 扩展Agent能力简单
+
+---
+
+## 十、代码质量最佳实践
+
+### 10.1 Python PEP 8 异常处理
+
+**原则**: 永远不要使用 `except:` 捕获所有异常
+
+**错误示例**:
+```python
+# ❌ 错误 - 捕获所有异常
+try:
+    do_something()
+except:
+    handle_error()
+```
+
+**正确示例**:
+```python
+# ✅ 正确 - 指定具体异常类型
+try:
+    do_something()
+except (ValueError, TypeError) as e:
+    handle_error()
+```
+
+**理由**:
+1. 捕获 KeyboardInterrupt, SystemExit 会导致程序无法正常退出
+2. 隐藏真实错误，增加调试难度
+3. 不符合 Python 之禅 "Explicit is better than implicit"
+
+### 10.2 依赖注入 vs 全局单例
+
+**问题**: 全局单例导致难以测试
+
+**改进方案** - 依赖注入:
+```python
+# ❌ 全局单例
+_service = None
+def get_service():
+    global _service
+    if _service is None:
+        _service = Service()
+    return _service
+
+# ✅ 依赖注入
+class Application:
+    def __init__(self, service: Service = None):
+        self.service = service or Service()
+```
+
+### 10.3 模块内导入
+
+**原则**: 在模块顶部导入依赖，不在函数内导入
+
+**错误示例**:
+```python
+# ❌ 函数内导入
+def execute():
+    from module import something
+    ...
+```
+
+**正确示例**:
+```python
+# ✅ 模块顶部导入
+from module import something
+
+def execute():
+    ...
+```
