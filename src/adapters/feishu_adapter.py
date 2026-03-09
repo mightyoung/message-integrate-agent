@@ -214,16 +214,20 @@ class FeishuAdapter(BaseAdapter):
     async def _handle_ws_menu_event(self, message_data: Dict[str, Any]):
         """处理 WebSocket 菜单事件"""
         try:
-            event = message_data.get("event", {})
-            menu_type = event.get("type", "")
-            user_id = event.get("user_id", "")
+            # lark_oapi SDK 返回的是对象，不是字典
+            event_obj = message_data.get("event")
 
-            if menu_type == "im.menu":
-                menu_data = event.get("menu_event", {})
-                menu_event_id = menu_data.get("menu_event_id", "")
-                chat_id = menu_data.get("chat_id", "")
+            if hasattr(event_obj, 'event') and event_obj.event:
+                # SDK 对象格式
+                event_data = event_obj.event
+                operator = getattr(event_data, 'operator', None)
+                event_key = getattr(event_data, 'event_key', "")
 
-                logger.info(f"[Feishu WS Menu] menu_event_id={menu_event_id}, user={user_id}")
+                user_id = ""
+                if operator:
+                    user_id = getattr(operator, 'user_id', "") if hasattr(operator, 'user_id') else str(operator)
+
+                logger.info(f"[Feishu WS Menu] event_key={event_key}, user={user_id}")
 
                 # 导入菜单处理器
                 from src.router.menu_handler import get_menu_handler
@@ -234,9 +238,9 @@ class FeishuAdapter(BaseAdapter):
                     "event": {
                         "type": "im.menu",
                         "menu_event": {
-                            "menu_event_id": menu_event_id,
+                            "menu_event_id": event_key,
                             "user_id": user_id,
-                            "chat_id": chat_id
+                            "chat_id": ""
                         }
                     }
                 }
@@ -246,7 +250,42 @@ class FeishuAdapter(BaseAdapter):
                     response = await self._execute_menu_intent(intent_result)
                     logger.info(f"[Feishu WS Menu] 处理完成: {intent_result.intent}")
                 else:
-                    logger.warning(f"[Feishu WS Menu] 无法处理菜单事件: {menu_event_id}")
+                    logger.warning(f"[Feishu WS Menu] 无法处理菜单事件: {event_key}")
+            else:
+                # 字典格式 (兼容旧代码)
+                event = message_data.get("event", {})
+                menu_type = event.get("type", "")
+                user_id = event.get("user_id", "")
+
+                if menu_type == "im.menu":
+                    menu_data = event.get("menu_event", {})
+                    menu_event_id = menu_data.get("menu_event_id", "")
+                    chat_id = menu_data.get("chat_id", "")
+
+                    logger.info(f"[Feishu WS Menu] menu_event_id={menu_event_id}, user={user_id}")
+
+                    # 导入菜单处理器
+                    from src.router.menu_handler import get_menu_handler
+                    menu_handler = get_menu_handler()
+
+                    # 构建事件结构 (与 Webhook 格式一致)
+                    ws_event = {
+                        "event": {
+                            "type": "im.menu",
+                            "menu_event": {
+                                "menu_event_id": menu_event_id,
+                                "user_id": user_id,
+                                "chat_id": chat_id
+                            }
+                        }
+                    }
+
+                    intent_result = await menu_handler.handle_menu_event(ws_event)
+                    if intent_result:
+                        response = await self._execute_menu_intent(intent_result)
+                        logger.info(f"[Feishu WS Menu] 处理完成: {intent_result.intent}")
+                    else:
+                        logger.warning(f"[Feishu WS Menu] 无法处理菜单事件: {menu_event_id}")
 
         except Exception as e:
             logger.error(f"处理 WebSocket 菜单事件失败: {e}")
@@ -254,12 +293,29 @@ class FeishuAdapter(BaseAdapter):
     async def _handle_ws_message_event(self, message_data: Dict[str, Any]):
         """处理 WebSocket 消息事件"""
         try:
-            event = message_data.get("event", {})
-            message = event.get("message", {})
-            message_id = message.get("message_id", "")
-            content = message.get("content", "")
-            user_id = event.get("user_id", "")
-            chat_id = event.get("chat_id", "")
+            # lark_oapi SDK 返回的是对象，不是字典
+            event_obj = message_data.get("event")
+
+            if hasattr(event_obj, 'event') and event_obj.event:
+                # SDK 对象格式
+                event_data = event_obj.event
+                message = getattr(event_data, 'message', None)
+                sender = getattr(event_data, 'sender', None)
+
+                message_id = getattr(message, 'message_id', "") if message else ""
+                content = getattr(message, 'content', "") if message else ""
+                chat_id = getattr(message, 'chat_id', "") if message else ""
+                user_id = getattr(sender, 'sender_id', "") if sender else ""
+                if user_id:
+                    user_id = getattr(user_id, 'open_id', "") if hasattr(user_id, 'open_id') else str(user_id)
+            else:
+                # 字典格式 (兼容旧代码)
+                event = message_data.get("event", {})
+                message = event.get("message", {})
+                message_id = message.get("message_id", "")
+                content = message.get("content", "")
+                user_id = event.get("user_id", "")
+                chat_id = event.get("chat_id", "")
 
             logger.info(f"[Feishu WS Message] message_id={message_id}, user={user_id}, content={content}")
 
@@ -321,9 +377,23 @@ class FeishuAdapter(BaseAdapter):
     async def _handle_ws_bot_entered_event(self, message_data: Dict[str, Any]):
         """处理机器人进入私聊事件"""
         try:
-            event = message_data.get("event", {})
-            user_id = event.get("user_id", "")
-            chat_id = event.get("chat_id", "")
+            # lark_oapi SDK 返回的是对象，不是字典
+            event_obj = message_data.get("event")
+
+            if hasattr(event_obj, 'event') and event_obj.event:
+                # SDK 对象格式
+                event_data = event_obj.event
+                chat_id = getattr(event_data, 'chat_id', "")
+                operator_id = getattr(event_data, 'operator_id', None)
+
+                user_id = ""
+                if operator_id:
+                    user_id = getattr(operator_id, 'open_id', "") if hasattr(operator_id, 'open_id') else str(operator_id)
+            else:
+                # 字典格式 (兼容旧代码)
+                event = message_data.get("event", {})
+                user_id = event.get("user_id", "")
+                chat_id = event.get("chat_id", "")
 
             logger.info(f"[Feishu WS Bot Entered] user={user_id}, chat={chat_id}")
 
