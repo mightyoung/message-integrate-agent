@@ -376,6 +376,10 @@ class FeishuAdapter(BaseAdapter):
 
     async def _handle_ws_bot_entered_event(self, message_data: Dict[str, Any]):
         """处理机器人进入私聊事件"""
+        # 去重缓存：记录最近发送欢迎消息的 chat_id 和时间
+        _welcome_cache: Dict[str, float] = {}
+        _CACHE_DURATION = 60  # 60秒内不重复发送欢迎消息
+
         try:
             # lark_oapi SDK 返回的是对象，不是字典
             event_obj = message_data.get("event")
@@ -396,6 +400,17 @@ class FeishuAdapter(BaseAdapter):
                 chat_id = event.get("chat_id", "")
 
             logger.info(f"[Feishu WS Bot Entered] user={user_id}, chat={chat_id}")
+
+            # 去重检查：60秒内同一个 chat_id 不重复发送欢迎消息
+            import time
+            now = time.time()
+            last_sent = _welcome_cache.get(chat_id, 0)
+            if now - last_sent < _CACHE_DURATION:
+                logger.info(f"[Feishu WS Bot Entered] 跳过欢迎消息 (缓存中), chat_id={chat_id}")
+                return
+
+            # 更新缓存
+            _welcome_cache[chat_id] = now
 
             # 发送欢迎消息
             welcome_message = """👋 你好！我是消息通信中枢 Agent
