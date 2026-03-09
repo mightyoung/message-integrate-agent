@@ -183,6 +183,22 @@ class FeishuAdapter(BaseAdapter):
             # 飞书 WebSocket 事件格式: {"type": "im.message", "event": {...}}
             event_type = message_data.get("type", "")
 
+            # 处理 p2 事件类型 (使用 builder 注册的事件)
+            if event_type.startswith("p2."):
+                actual_type = event_type[3:]  # 去掉 "p2." 前缀
+                event = message_data.get("event", {})
+
+                if actual_type == "im.message.receive_v1":
+                    asyncio.create_task(self._handle_ws_message_event(message_data))
+                elif actual_type == "application.bot.menu_v6":
+                    asyncio.create_task(self._handle_ws_menu_event(message_data))
+                elif actual_type == "im.chat.access_event.bot_p2p_chat_entered_v1":
+                    asyncio.create_task(self._handle_ws_bot_entered_event(message_data))
+                else:
+                    logger.info(f"[Feishu WS] 未处理的 P2 事件类型: {actual_type}")
+                return
+
+            # 兼容旧的事件类型
             if event_type == "im.menu":
                 # 菜单事件 - 异步处理
                 asyncio.create_task(self._handle_ws_menu_event(message_data))
@@ -301,6 +317,35 @@ class FeishuAdapter(BaseAdapter):
 
         except Exception as e:
             logger.error(f"处理 WebSocket 消息事件失败: {e}")
+
+    async def _handle_ws_bot_entered_event(self, message_data: Dict[str, Any]):
+        """处理机器人进入私聊事件"""
+        try:
+            event = message_data.get("event", {})
+            user_id = event.get("user_id", "")
+            chat_id = event.get("chat_id", "")
+
+            logger.info(f"[Feishu WS Bot Entered] user={user_id}, chat={chat_id}")
+
+            # 发送欢迎消息
+            welcome_message = """👋 你好！我是消息通信中枢 Agent
+
+我可以帮助你：
+• 📰 获取热点新闻和资讯
+• 🔍 搜索各类信息
+• 📚 查找学术论文
+• 💬 智能对话
+
+直接发送消息开始使用吧！"""
+
+            await self.send_message(
+                chat_id=chat_id,
+                content=welcome_message
+            )
+            logger.info(f"[Feishu WS Bot Entered] 欢迎消息已发送")
+
+        except Exception as e:
+            logger.error(f"处理机器人进入事件失败: {e}")
 
     def _on_ws_connect(self):
         """WebSocket 连接成功回调"""

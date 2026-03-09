@@ -58,6 +58,52 @@ class FeishuWebSocketClient:
         self._ws_thread: Optional[threading.Thread] = None
         self._ws_client = None
 
+    def _create_event_handler(self):
+        """
+        创建事件处理器，注册所有需要的事件类型
+
+        飞书 SDK 需要为每个事件类型注册处理器，
+        否则会返回 "processor not found" 错误
+        """
+        import lark_oapi
+        from lark_oapi.event.dispatcher_handler import EventDispatcherHandlerBuilder
+
+        builder = EventDispatcherHandler.builder(
+            encrypt_key="",  # 如果启用了加密则填写
+            verification_token="",  # 如果启用了验证则填写
+        )
+
+        # 注册消息接收事件 (im.message.receive_v1)
+        builder.register_p2_im_message_receive_v1(
+            lambda event: self._handle_p2_event("im.message.receive_v1", event)
+        )
+
+        # 注册机器人进入私聊事件 (im.chat.access_event.bot_p2p_chat_entered_v1)
+        builder.register_p2_im_chat_access_event_bot_p2p_chat_entered_v1(
+            lambda event: self._handle_p2_event("im.chat.access_event.bot_p2p_chat_entered_v1", event)
+        )
+
+        # 注册菜单事件 (application.bot.menu_v6)
+        builder.register_p2_application_bot_menu_v6(
+            lambda event: self._handle_p2_event("application.bot.menu_v6", event)
+        )
+
+        return builder.build()
+
+    def _handle_p2_event(self, event_type: str, event: Any):
+        """处理 P2 事件"""
+        logger.info(f"[Lark WS] 处理 P2 事件: {event_type}")
+        if self.on_message:
+            try:
+                msg_dict = {
+                    "type": f"p2.{event_type}",
+                    "event": event,
+                }
+                self.on_message(msg_dict)
+            except Exception as e:
+                logger.error(f"处理飞书 P2 事件失败: {e}")
+        return {"code": 0}
+
     def start(self):
         """
         启动长连接 (阻塞)
@@ -67,34 +113,17 @@ class FeishuWebSocketClient:
             from lark_oapi import ws
             from lark_oapi.core.enum import LogLevel
 
-            # 创建事件处理器
-            class MessageEventHandler(lark_oapi.EventDispatcherHandler):
-                def do(self, callback):
-                    """处理飞书事件"""
-                    # 添加详细日志
-                    logger.info(f"[Lark WS] 收到事件: type={callback.type}, event={callback.event}")
-                    if self.on_message:
-                        try:
-                            msg_dict = {
-                                "type": callback.type,
-                                "timestamp": callback.timestamp,
-                                "event": callback.event,
-                            }
-                            logger.info(f"[Lark WS] 消息内容: {msg_dict}")
-                            self.on_message(msg_dict)
-                        except Exception as e:
-                            logger.error(f"处理飞书消息失败: {e}")
-                    return {"code": 0}
-
-            # 创建事件处理器实例
-            handler = MessageEventHandler()
+            # 创建事件处理器 - 使用 builder 注册所有需要的事件
+            logger.info("[Lark WS] 创建事件处理器并注册事件类型...")
+            event_handler = self._create_event_handler()
+            logger.info("[Lark WS] 事件处理器创建成功")
 
             # 创建 WebSocket 客户端
             self._ws_client = ws.Client(
                 app_id=self.app_id,
                 app_secret=self.app_secret,
                 log_level=LogLevel.INFO,
-                event_handler=handler,
+                event_handler=event_handler,
             )
 
             self._running = True
