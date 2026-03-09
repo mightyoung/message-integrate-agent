@@ -339,3 +339,23 @@ def get_feedback_service(experience_logger=None) -> FeedbackService:
     if _feedback_service is None:
         _feedback_service = FeedbackService(experience_logger)
     return _feedback_service
+
+
+# FeedbackLoop exports
+from src.feedback.loop import FeedbackLoop, FeedbackPattern, ReflectionResult
+
+__all__ = [
+    # Core
+    "FeedbackService",
+    "FeedbackStore",
+    "FeedbackAPI",
+    "FeedbackType",
+    "FeedbackSource",
+    "UserFeedback",
+    "FeedbackStats",
+    "get_feedback_service",
+    # Loop
+    "FeedbackLoop",
+    "FeedbackPattern",
+    "ReflectionResult",
+]

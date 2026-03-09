@@ -5,11 +5,14 @@ Agent Communication Module
 - Service Registry: 服务注册与发现
 - RPC Client: 远程过程调用
 - Message Queue: 异步消息队列
+- A2A Protocol: Google Agent-to-Agent 标准协议
+- Agent Card: Agent 能力描述
 
 设计参考：
 - Consul/etcd: 服务注册与发现
 - gRPC: 远程过程调用
 - Redis Pub/Sub: 消息队列
+- Google A2A Protocol: Agent 互操作标准
 """
 import asyncio
 import json
@@ -20,6 +23,25 @@ from typing import Any, Callable, Dict, List, Optional
 from dataclasses import dataclass, field
 
 from loguru import logger
+
+
+# A2A imports
+from src.agent_comm.cards import (
+    AgentCard,
+    AgentCardRegistry,
+    AgentSkill,
+    AgentAuth,
+    AuthType,
+    Capability,
+    get_card_registry,
+)
+
+from src.agent_comm.a2a import (
+    A2AServer,
+    A2AClient,
+    Task,
+    TaskState,
+)
 
 
 class ServiceStatus(Enum):
@@ -532,6 +554,64 @@ class AgentCommunicator:
         """
         await self.queue.publish(f"agent:{agent_name}", message)
 
+    # A2A Task Distribution Methods
+
+    async def a2a_send_task(
+        self,
+        agent_name: str,
+        input_data: Dict[str, Any],
+        a2a_url: str = "http://localhost:8000"
+    ) -> Dict[str, Any]:
+        """
+        通过 A2A 发送任务到远程 Agent
+
+        Args:
+            agent_name: Agent 名称
+            input_data: 输入数据
+            a2a_url: A2A Server URL
+
+        Returns:
+            任务结果
+        """
+        client = A2AClient(a2a_url)
+        result = await client.send_task(agent_name, input_data)
+        return result.get("result", {})
+
+    async def a2a_get_task(
+        self,
+        task_id: str,
+        a2a_url: str = "http://localhost:8000"
+    ) -> Dict[str, Any]:
+        """
+        通过 A2A 获取任务状态
+
+        Args:
+            task_id: 任务 ID
+            a2a_url: A2A Server URL
+
+        Returns:
+            任务状态
+        """
+        client = A2AClient(a2a_url)
+        result = await client.get_task(task_id)
+        return result.get("result", {})
+
+    async def a2a_list_agents(
+        self,
+        a2a_url: str = "http://localhost:8000"
+    ) -> List[Dict[str, Any]]:
+        """
+        通过 A2A 列出可用 Agent
+
+        Args:
+            a2a_url: A2A Server URL
+
+        Returns:
+            Agent 列表
+        """
+        client = A2AClient(a2a_url)
+        return await client.list_agents()
+
 
 # 全局通信器
 _communicator: Optional[AgentCommunicator] = None
@@ -543,3 +623,124 @@ def get_agent_communicator() -> AgentCommunicator:
     if _communicator is None:
         _communicator = AgentCommunicator()
     return _communicator
+
+
+# External Agent Registration Helpers
+def register_trendradar_agent(
+    registry: AgentCardRegistry,
+    url: str = "http://localhost:8001"
+) -> AgentCard:
+    """
+    注册 TrendRadar 情报获取 Agent
+
+    Args:
+        registry: Agent Card 注册中心
+        url: TrendRadar 服务 URL
+
+    Returns:
+        注册的 Agent Card
+    """
+    card = AgentCard(
+        name="trendradar",
+        description="情报获取 Agent - 热点新闻聚合与分析",
+        url=url,
+        version="1.0.0",
+        capabilities=[
+            Capability.SEARCH,
+            Capability.DATA_ANALYSIS,
+            Capability.REASONING,
+        ],
+        skills=[
+            AgentSkill(
+                id="fetch_news",
+                name="获取新闻",
+                description="从多个平台获取热点新闻",
+                tags=["news", "trending"],
+            ),
+            AgentSkill(
+                id="analyze_trends",
+                name="分析趋势",
+                description="分析新闻趋势和热点",
+                tags=["analysis", "trends"],
+            ),
+            AgentSkill(
+                id="summarize",
+                name="摘要",
+                description="生成新闻摘要",
+                tags=["summary", "nlp"],
+            ),
+        ],
+    )
+    registry.register(card)
+    logger.info("✅ Registered TrendRadar agent")
+    return card
+
+
+def register_berberfish_agent(
+    registry: AgentCardRegistry,
+    url: str = "http://localhost:8002"
+) -> AgentCard:
+    """
+    注册 BerberFish Agent (待定功能)
+
+    Args:
+        registry: Agent Card 注册中心
+        url: BerberFish 服务 URL
+
+    Returns:
+        注册的 Agent Card
+    """
+    card = AgentCard(
+        name="berberfish",
+        description="多模态 Agent - 支持图像、语音处理",
+        url=url,
+        version="1.0.0",
+        capabilities=[
+            Capability.TEXT_GENERATION,
+            Capability.CODE_GENERATION,
+            Capability.TOOL_USE,
+        ],
+        skills=[
+            AgentSkill(
+                id="code_assist",
+                name="代码助手",
+                description="编程问题解答和代码生成",
+                tags=["code", "programming"],
+            ),
+        ],
+    )
+    registry.register(card)
+    logger.info("✅ Registered BerberFish agent")
+    return card
+
+
+__all__ = [
+    # Core
+    "ServiceRegistry",
+    "ServiceInfo",
+    "ServiceStatus",
+    "RPCClient",
+    "RPCRequest",
+    "RPCResponse",
+    "MessageQueue",
+    "AgentCommunicator",
+    "get_service_registry",
+    "get_message_queue",
+    "get_agent_communicator",
+    # A2A
+    "A2AServer",
+    "A2AClient",
+    "Task",
+    "TaskState",
+    # Cards
+    "AgentCard",
+    "AgentCardRegistry",
+    "AgentSkill",
+    "AgentAuth",
+    "AuthType",
+    "Capability",
+    "get_card_registry",
+    # Helpers
+    "register_trendradar_agent",
+    "register_berberfish_agent",
+]

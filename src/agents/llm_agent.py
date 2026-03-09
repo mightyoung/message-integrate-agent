@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from loguru import logger
 
 from src.mcp.tools.llm import chat_with_llm, chat_with_anthropic
+from src.prompts import get_prompt
 
 
 class LLMAgent:
@@ -17,6 +18,8 @@ class LLMAgent:
         self.config = config or {}
         self.default_model = self.config.get("default_model", "gpt-4")
         self.conversation_history: Dict[str, list] = {}
+        # Use optimized prompt
+        self.default_system_message = get_prompt("llm_agent")
 
     async def handle(
         self,
@@ -39,7 +42,7 @@ class LLMAgent:
         history = self.conversation_history.get(user_id, [])
 
         # Build system message
-        system_message = "You are a helpful AI assistant."
+        system_message = self.default_system_message
         if context and context.get("system_message"):
             system_message = context["system_message"]
 

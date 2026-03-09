@@ -1,0 +1,84 @@
+# ============================================================
+# Message Integrate Agent - Production Dockerfile
+# ============================================================
+#
+# 设计原则:
+# 1. 多阶段构建减小镜像体积
+# 2. 安全加固 - 非 root 用户运行
+# 3. 健康检查
+# 4. 生产级配置
+#
+# 构建命令:
+#   docker build -f Dockerfile.prod -t message-integrate-agent:prod .
+#
+# ============================================================
+
+# ============================================================
+# Stage 1: Builder - 安装依赖
+# ============================================================
+FROM mirror.gcr.io/library/python:3.11-slim AS builder
+
+# 安装构建工具
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建虚拟环境
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 安装 Python 依赖
+WORKDIR /build
+COPY requirements.txt pyproject.toml ./
+RUN pip install --no-cache-dir --upgrade pip wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ============================================================
+# Stage 2: Runtime - 运行镜像
+# ============================================================
+FROM mirror.gcr.io/library/python:3.11-slim AS runtime
+
+# 安装运行时依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建非 root 用户 (安全加固)
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser
+
+# 从 builder 复制虚拟环境
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制源代码
+COPY --chown=appuser:appgroup src/ ./src/
+COPY --chown=appuser:appgroup config/ ./config/
+
+# 创建必要目录
+RUN mkdir -p logs .learnings && chown -R appuser:appgroup /app
+
+# 设置环境变量
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    # 生产环境标识
+    ENVIRONMENT=production
+
+# 切换到非 root 用户
+USER appuser
+
+# 暴露端口
+EXPOSE 8080 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -sf http://localhost:8080/health || exit 1
+
+# 运行应用
+CMD ["python", "-m", "src.main"]

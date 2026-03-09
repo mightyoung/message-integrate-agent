@@ -1,0 +1,7 @@
+# ngrok configuration - 简化版
+tunnel: web
+
+web:
+  proto: http
+  addr: gateway:8080
+  host_header: rewrite

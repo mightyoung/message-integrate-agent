@@ -38,6 +38,8 @@ async def lifespan(app: dict):
     # Load feishu config first (before using it)
     feishu_config = config.feishu.model_dump()
     feishu_config["webhook_url"] = os.environ.get("FEISHU_WEBHOOK_URL")
+    # 添加连接模式配置: webhook 或 websocket
+    feishu_config["connection_mode"] = os.environ.get("FEISHU_CONNECTION_MODE", "webhook")
 
     # Register platform adapters
     adapter_registry.register_adapter_class(
@@ -64,6 +66,11 @@ async def lifespan(app: dict):
         "wechat": config.wechat.model_dump(),
     }
     gateway = WebSocketGateway(config.gateway, platform_configs, adapter_registry)
+
+    # 注册网关到飞书适配器 (用于处理 WebSocket 消息)
+    from src.adapters.feishu_adapter import set_gateway
+    set_gateway(gateway)
+
     # Pass agent pool and routers to gateway
     from src.agents.pool import AgentPool
     from src.router.keyword_router import KeywordRouter
@@ -92,11 +99,28 @@ async def lifespan(app: dict):
         "default": "llm"
     })
 
+    # Initialize Agent system components for deep processing
+    from src.agents.checkpoint import CheckpointManager
+    from src.agents.loop import AgentLoop
+
+    checkpoint_manager = CheckpointManager(
+        db_path=".learnings/checkpoints.db",
+        max_checkpoints=100,
+    )
+
+    agent_loop = AgentLoop(
+        max_iterations=10,
+        timeout_seconds=300.0,
+    )
+
     # Wire up the gateway with routing
     gateway.set_agent_pool(agent_pool)
     gateway.set_routers(keyword_router, ai_router)
     gateway.set_agent_registry(agent_registry)
+    gateway.set_agent_loop(agent_loop, checkpoint_manager)
     app["gateway"] = gateway
+    app["checkpoint_manager"] = checkpoint_manager
+    app["agent_loop"] = agent_loop
 
     await gateway.start()
     logger.info("WebSocket gateway started")
@@ -152,11 +176,101 @@ async def lifespan(app: dict):
     app["feedback_service"] = feedback_service
     logger.info("📊 Feedback service initialized")
 
+    # Register feedback routes with gateway
+    gateway.set_feedback_service(feedback_service)
+
+    # Feedback Loop - AI-driven feedback processing
+    from src.feedback import FeedbackLoop
+    feedback_loop = FeedbackLoop(
+        feedback_service=feedback_service,
+        experience_logger=experience_logger,
+        agent_loop=agent_loop,
+        keyword_router=keyword_router,
+    )
+    app["feedback_loop"] = feedback_loop
+    logger.info("🔄 FeedbackLoop initialized")
+
     # Observability Service - Metrics and monitoring
     from src.observability import get_observability_service
     observability = get_observability_service()
     app["observability"] = observability
     logger.info("📈 Observability service initialized")
+
+    # ========================================
+    # Agent System - Roles, Enforcer
+    # ========================================
+
+    # Agent Collaboration System - Multi-role orchestration
+    from src.agents.roles import AgentCollaborationSystem
+    collaboration_system = AgentCollaborationSystem()
+    app["collaboration_system"] = collaboration_system
+    logger.info("🤝 Agent collaboration system initialized")
+
+    # TodoEnforcer - Task monitoring
+    from src.agents.enforcer import TodoEnforcer
+    todo_enforcer = TodoEnforcer()
+    await todo_enforcer.start_monitoring()
+    app["todo_enforcer"] = todo_enforcer
+    logger.info("✅ TodoEnforcer initialized")
+
+    # ========================================
+    # Intelligence Pipeline - 情报处理流水线
+    # ========================================
+
+    # Intelligence Pipeline - 基于 TrendRadar 的情报获取与分析
+    from src.intelligence.pipeline import IntelligencePipeline
+    from src.intelligence.scorer import UserProfile
+
+    cfg = app["config"]
+
+    # 检查是否启用 WorldMonitor
+    worldmonitor_enabled = os.environ.get("WORLDMONITOR_ENABLED", "false").lower() == "true"
+
+    # 初始化 Intelligence Pipeline (失败时跳过)
+    intelligence_pipeline = None
+    try:
+        intelligence_pipeline = IntelligencePipeline(
+            config={
+                "platforms": ["weibo", "zhihu", "bilibili"],
+                "llm_model": cfg.llm.default_model,
+                "default_channels": ["feishu"],
+                # RSS 配置 - 支持所有分类 (geopolitics, military, cyber, tech, finance, science, china, social)
+                "rss_enabled": True,
+                "rss_categories": ["geopolitics", "military", "cyber", "tech", "finance", "science"],
+                "rss_lang": "en",
+                "rss_max_tier": 2,
+                # WorldMonitor 配置
+                "worldmonitor_enabled": worldmonitor_enabled,
+                "worldmonitor_api_url": os.environ.get("WORLDMONITOR_API_URL", "https://worldmonitor.app"),
+                "worldmonitor_api_key": os.environ.get("WORLDMONITOR_API_KEY", ""),
+                "worldmonitor_categories": ["geopolitics", "military", "economy", "tech"],
+            }
+        )
+        # 注册默认用户画像（可以从数据库加载）
+        intelligence_pipeline.register_user(
+            UserProfile(
+                user_id="default",
+                interests=["AI", "科技", "互联网", "大模型"],
+                preferred_categories=["AI突破", "产品发布", "行业动态"],
+                notification_channels=["feishu"],
+                notify_frequency="daily",
+            )
+        )
+        app["intelligence_pipeline"] = intelligence_pipeline
+        logger.info("📊 Intelligence pipeline initialized")
+    except Exception as e:
+        logger.warning(f"Intelligence pipeline 初始化失败，跳过: {e}")
+        intelligence_pipeline = None
+
+    app["intelligence_pipeline"] = intelligence_pipeline
+
+    # Connect IntelligencePipeline to Heartbeat (if initialized)
+    if intelligence_pipeline:
+        from src.heartbeat.engine import HeartbeatStep
+        intelligence_task = heartbeat_engine.tasks.get(HeartbeatStep.INTELLIGENCE_GATHERING)
+        if intelligence_task:
+            intelligence_task.set_pipeline(intelligence_pipeline)
+            logger.info("🔗 Intelligence pipeline connected to Heartbeat")
 
     yield
 
@@ -175,6 +289,11 @@ async def lifespan(app: dict):
     if "service_registry" in app:
         await app["service_registry"].stop_health_check()
         logger.info("🔗 Service registry stopped")
+
+    # Stop agent system
+    if "todo_enforcer" in app:
+        await app["todo_enforcer"].stop_monitoring()
+        logger.info("✅ TodoEnforcer stopped")
 
     await gateway.stop()
     # Stop MCP server

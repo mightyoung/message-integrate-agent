@@ -499,3 +499,687 @@ from module import something
 def execute():
     ...
 ```
+
+### 10.4 懒加载模式 (Lazy Loading)
+
+**场景**: 避免循环导入，或延迟加载重型模块
+
+**实现**:
+```python
+class LazyLoader:
+    """懒加载器 - 避免在函数内部导入模块"""
+    _cache: Dict[str, Any] = {}
+
+    @classmethod
+    def get(cls, module_path: str, attr: str = None):
+        """懒加载模块"""
+        key = f"{module_path}:{attr}" if attr else module_path
+        if key not in cls._cache:
+            try:
+                import importlib
+                module = importlib.import_module(module_path)
+                cls._cache[key] = getattr(module, attr) if attr else module
+            except ImportError as e:
+                cls._cache[key] = None
+                logger.warning(f"懒加载失败 {module_path}: {e}")
+        return cls._cache[key]
+
+# 使用示例
+def execute():
+    search_web = LazyLoader.get("src.mcp.tools.search", "search_web")
+    if search_web:
+        results = await search_web(query)
+```
+
+**优点**:
+1. 避免循环导入
+2. 延迟加载重型模块（减少启动时间）
+3. 保持模块顶部导入的代码风格
+
+---
+
+## 十一、最新行业研究 (2025)
+
+### 11.1 Google A2A Protocol
+
+**来源**: https://github.com/a2aproject/A2A
+
+**核心概念**:
+- **Agent Card**: JSON 格式描述 Agent 能力
+- **Task**: 跨 Agent 任务传递
+- **Message**: Agent 间消息格式
+
+**Agent Card 示例**:
+```json
+{
+  "version": "1.0",
+  "name": "TrendRadar Agent",
+  "description": "获取科技趋势情报",
+  "skills": [
+    {"id": "tech_trends", "name": "科技趋势分析"}
+  ],
+  "endpoint": "http://trendradar:8080/a2a"
+}
+```
+
+**A2A vs MCP**:
+| 维度 | A2A | MCP |
+|------|-----|-----|
+| 用途 | Agent 间通信 | Agent ↔ 工具 |
+| 模式 | 异步任务 | 函数调用 |
+| 状态 | Task lifecycle | 无状态 |
+
+---
+
+### 11.2 AutoGen 多 Agent 对话
+
+**来源**: https://microsoft.github.io/autogen/0.2/docs/Use-Cases/agent_chat
+
+**核心模式**:
+```python
+from autogen import ConversableAgent
+
+agent = ConversableAgent(
+    name="assistant",
+    llm_config=llm_config,
+    function_map={"get_weather": get_weather}
+)
+
+# 消息进入 Agent 对话，Agent 可以多轮交互、调用工具
+result = await agent.a_generate_reply(messages=[user_message])
+```
+
+**关键特性**:
+- Shared state management across agents
+- Group chat for multi-agent collaboration
+- Memory module for context persistence
+
+---
+
+### 11.3 用户反馈学习系统
+
+**来源**: https://medium.com/@nomannayeem/lets-build-a-self-improving-ai-agent-that-learns-from-your-feedback-722d2ce9c2d9
+
+**实现模式**:
+```python
+class FeedbackLearner:
+    async def process_feedback(self, feedback: UserFeedback):
+        # 1. 记录反馈
+        await self.store.save(feedback)
+
+        # 2. 负面反馈触发反思
+        if feedback.feedback_type == FeedbackType.THUMBS_DOWN:
+            await self._analyze_failure(feedback)
+
+        # 3. 纠正更新知识库
+        if feedback.feedback_type == FeedbackType.CORRECTION:
+            await self._update_knowledge(feedback)
+```
+
+---
+
+### 11.4 情报评分系统
+
+**评分公式**:
+```
+情报价值 = f(时效性, 相关性, 置信度, 用户兴趣匹配)
+
+score = recency * 0.2 + topic_match * 0.4 + credibility * 0.3 + feedback_adj * 0.1
+```
+
+**实现要点**:
+1. **时效性**: 发布时间距离当前的小时数
+2. **主题匹配**: 情报主题与用户兴趣的重叠度
+3. **来源置信度**: 来源可信度评分
+4. **历史反馈**: 用户对该类型情报的历史反馈调整
+
+---
+
+## 十二、架构问题诊断
+
+### 🔴 P0 - 致命问题
+
+| 问题 | 位置 | 描述 |
+|------|------|------|
+| 消息→Agent 断裂 | pipeline.py | 消息直接路由，无 Agent 消化 |
+| 反馈未闭环 | feedback/ | FeedbackService 存在但无收集入口 |
+| 情报→推送断裂 | heartbeat/push | 两系统独立，无价值评估连接 |
+| A2A 协议缺失 | agent_comm/ | 无标准化 Agent 通信 |
+
+### 🟡 P1 - 重要问题
+
+| 问题 | 描述 |
+|------|------|
+| 会话持久化 | 内存存储，重启丢失 |
+| 用户画像 | 无个性化学习 |
+| 流式输出 | 阻塞等待完整响应 |
+
+---
+
+## 十三、飞书长连接 + Mihomo 代理研究
+
+### 1. 飞书 WebSocket 长连接机制
+
+**关键发现**：
+- OpenClaw/TrendRadar 使用 `@larksuiteoapi/node-sdk`（Node.js 版本）
+- 核心是 `WSClient.start()` 建立**出站连接**到 `wss://msg-frontier.feishu.cn`
+- 这是**客户端主动连接**，不需要公网 IP
+
+**Python SDK 问题**：
+- `lark_oapi` Python SDK API 与 Node.js 版本完全不同
+- 需要使用 `ws.Client` 类（不是 `client.Client`）
+- 事件处理器需要继承 `EventDispatcherHandler`
+
+**测试结果**：
+```
+✅ connected to wss://msg-frontier.feishu.cn/ws/v2?...
+✅ ping success
+✅ receive pong
+```
+
+### 2. mihomo 代理模式
+
+**代理协议**：
+- HTTP 代理：端口 9090
+- SOCKS5 代理：端口 7890
+
+**路由策略**：
+- 域名规则：proxy_domains / direct_domains
+- GeoIP：判断目标 IP 是否在中国大陆
+- 混合模式：域名优先，fallback 用 GeoIP
+
+### 3. 项目现有组件
+
+- `ProxyManager`: 已有域名规则路由
+- `FeishuAdapter`: 已支持 webhook 和 websocket 模式
+- `FeishuWebSocketClient`: 已实现但有同步/异步问题
+
+### 4. 行业参考
+
+- Clash.Meta: mihomo 是 Clash.Meta 的 Go 实现
+- 代理自动选择：类似 Surge、Shadowrocket 的 "代理规则"
+- 混合模式：常见于科学上网工具
+
+### 5. 技术挑战
+
+1. asyncio 冲突：lark_oapi SDK 内部使用 `run_until_complete`
+2. 代理判断：需要高效判断域名/IP 是否需要代理
+3. 连接管理：长连接需要心跳维护
+
+### 7. RSS 源集成
+
+**来源**:
+- WorldMonitor: 435+ 精选 RSS 源
+- TrendRadar: 中文热榜
+
+**集成的分类**:
+- geopolitics: 世界政治
+- military: 军事
+- cyber: 网络安全
+- tech: 科技
+- finance: 经济
+- science: 科学
+- china: 中国
+- social: 社交媒体热榜
+
+**统计**:
+- 300+ RSS 源
+- 支持中英文
+- Tier 1-3 信任层级
+
+### 8. ArXiv 论文源增强
+
+**ArXiv API**:
+- 基础 URL: `http://export.arxiv.org/api/query`
+- 支持分类: cs.AI, cs.LG, cs.CL, cs.CV 等
+
+**处理流程**:
+```
+获取论文 → 翻译标题 → 总结摘要 → 推送
+```
+
+### 9. BettaFish + MiroFish 研究
+
+**BettaFish**:
+- 舆情分析系统，多智能体协同
+- 功能: 爬虫 + 分析 + 报告
+- 架构: Python + Flask
+
+**MiroFish**:
+- AI 预测引擎，多智能体仿真
+- 功能: 仿真 + 预测 + 推演
+- 架构: Python + Vue
+- Stars: 6.6k
+
+**集成方案**:
+- 独立 Docker 容器
+- REST API 对接
+- Docker Network 通信
+
+### 6. Docker 网络架构
+
+**方案变更**：由于 mihomo 在另一个 Docker Compose 的子网，用户要求自行创建代理服务。
+
+**实现方案**：
+- 在 docker-compose.yml 中添加 mihomo 服务
+- 使用 host 网络模式让 mihomo 直接访问外网
+- gateway 容器通过 Docker 网络连接到 mihomo
+- 配置 HTTP_PROXY/HTTPS_PROXY 环境变量
+
+**Vmess 节点配置**：
+```
+服务器: c59s3.portablesubmarines.com
+端口: 16255
+UUID: 917f15f7-e9b8-47b3-87df-51b36fe63e8b
+协议: TCP + TLS
+跳过证书验证: true
+```
+
+**最终网络架构**：
+```
+NAS (192.168.1.2)           本地 Mac / Docker Container
+┌──────────────┐             ┌─────────────────────────┐
+│   mihomo    │             │    gateway container    │
+│  port:7890  │◀── proxy ──▶│ HTTP_PROXY env var    │
+│  port:9090  │             │                        │
+└──────────────┘             └─────────────────────────┘
+       │                             │
+       │                             │
+       ▼                             ▼
+   外部网络                   ┌─────────────────────────┐
+   (Vmess)                  │ 飞书/百度直连          │
+                            │ (NO_PROXY 配置)        │
+                            └─────────────────────────┘
+```
+
+**配置更新**：
+1. docker-compose.yml - 指向 NAS mihomo
+2. .env - HTTP_PROXY/HTTPS_PROXY 指向 192.168.1.2:7890
+3. config/proxy.yaml - mihomo 配置更新
+
+---
+
+## 十四、S3/RustFs + PostgreSQL + 向量存储集成 (2026-03-08)
+
+### 14.1 配置信息
+
+**PostgreSQL + pgvector (NAS)**:
+```
+DATABASE_URL=postgresql://postgres:postgres@192.168.1.2:45041/bs_generator_db
+PG_HOST=192.168.1.2
+PG_PORT=45041
+PG_USER=postgres
+PG_PASSWORD=postgres
+PG_DB_NAME=intelligence_db
+```
+
+**S3/RustFs Storage (NAS)**:
+```
+S3_ENDPOINT_URL=http://192.168.1.2:37163
+S3_ACCESS_KEY=7BG4U5KOh2dAkjeFlbcQ
+S3_SECRET_KEY=seIUqnd9YrMf0vbSz5c1iFAoJQDpwOEH6ZGPVgC2
+S3_BUCKET_NAME=mightyoung
+S3_REGION_NAME=us-east-1
+```
+
+**Redis (NAS)**:
+```
+REDIS_HOST=192.168.1.2
+REDIS_PORT=40967
+REDIS_DB=0
+```
+
+### 14.2 新增模块
+
+**存储模块** (`src/storage/`):
+- `s3_client.py` - S3/RustFs 客户端
+- `postgres_client.py` - PostgreSQL + pgvector 客户端
+- `redis_client.py` - Redis 客户端
+- `md_generator.py` - Markdown 文件生成器
+
+### 14.3 tech-news-digest 技能
+
+**已安装**: `draco-agent/tech-news-digest@tech-news-digest`
+
+功能:
+- 151 个数据源 (RSS, Twitter, GitHub, Reddit)
+- 质量评分与去重
+- 多格式输出 (Discord/Email/PDF)
+
+位置: `~/.agents/skills/tech-news-digest`
+
+### 14.4 InfoID 设计
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           InfoID 结构 (64-bit)                         │
+├────────────┬──────────┬────────────┬────────────┬──────────────────────┤
+│ 时间戳      │ 类型ID   │ 来源ID     │ 序列号     │ 校验码              │
+│ (41 bits)  │ (8 bits) │ (6 bits)   │ (8 bits)   │ (1 bit)             │
+└────────────┴──────────┴────────────┴────────────┴──────────────────────┘
+```
+
+| 字段 | 长度 | 说明 | 示例 |
+|------|------|------|------|
+| 时间戳 | 41 bits | 毫秒级时间戳 | 2026-03-08 10:30:00 |
+| 类型ID | 8 bits | 信息类型 (0-255) | 1=RSS, 2=用户输入, 3=BettaFish, 4=MiroFish |
+| 来源ID | 6 bits | 来源系统 (0-63) | 1=微博, 2=知乎, 3=RSS, 4=飞书 |
+| 序列号 | 8 bits | 同一毫秒内序列 (0-255) | 自动递增 |
+| 校验码 | 1 bit | CRC 校验 | 0 |
+
+### 14.5 用户触发机制
+
+```python
+COMMAND_PATTERNS = {
+    "bettafish": [
+        r"对(.+?)利用bettafish进行深入分析",
+        r"bettafish分析(.+)",
+    ],
+    "mirofish": [
+        r"对(.+?)利用mirofish进行预测性分析",
+        r"mirofish预测(.+)",
+    ],
+}
+```
+
+### 14.6 依赖更新
+
+新增 Python 包:
+- boto3>=1.34.0
+- psycopg2-binary>=2.9.9
+- redis>=5.0.0
+
+---
+
+## 十五、Agent 系统提示词优化 (2026-03-09)
+
+### 15.1 行业最佳实践参考
+
+分析了以下顶级 AI Agent 的系统提示词:
+- **Claude Code** (Anthropic): 简洁、直接、任务导向
+- **Cursor Agent 2.0**: 详细工具定义、输出格式规范
+- **Manus**: 角色定义、能力描述、限制说明
+- **Windsurf**: 多步骤指导、示例驱动
+
+### 15.2 优化要点
+
+| 优化项 | 之前 | 之后 |
+|--------|------|------|
+| 角色定义 | 简单一句 | 完整角色描述 |
+| 输出格式 | 无规范 | JSON Schema + 示例 |
+| 项目上下文 | 缺失 | 包含项目背景 |
+| 约束说明 | 无 | 明确约束条件 |
+| Agent 列表 | 3 个 | 6 个 (含 bettafish/mirofish) |
+
+### 15.3 新增模块
+
+**文件**: `src/prompts/__init__.py`
+
+包含以下提示词:
+- `INTENT_ROUTER_PROMPT` - 意图路由
+- `INTELLIGENCE_ANALYZER_PROMPT` - 情报分析
+- `TRANSLATOR_PROMPT` - 翻译助手
+- `README_SUMMARIZER_PROMPT` - README 摘要
+- `BETTAFISH_ANALYZER_PROMPT` - 舆情分析
+- `MIROFISH_PREDICTOR_PROMPT` - 预测分析
+- `LLM_AGENT_PROMPT` - 通用 LLM
+
+### 15.4 更新的文件
+
+| 文件 | 更新内容 |
+|------|----------|
+| `src/router/ai_router.py` | 使用优化后的意图路由提示词 |
+| `src/intelligence/analyzer.py` | 使用优化后的分析和翻译提示词 |
+| `src/agents/llm_agent.py` | 使用优化后的通用助手提示词 |
+
+### 15.5 示例: 意图路由提示词
+
+```python
+INTENT_ROUTER_PROMPT = """# 消息路由助手
+
+## 角色定义
+你是一个智能消息路由器，负责分析用户消息并将任务分配给最合适的 AI Agent。
+
+## 项目上下文
+- 项目名称: message-integrate-agent
+- 功能: 连接 Telegram、飞书、微信的消息中枢
+
+## 可用 Agent
+| Agent | 描述 | 适用场景 |
+|-------|------|----------|
+| llm | 对话型 AI | 问答、翻译 |
+| search | 搜索 Agent | 天气、新闻 |
+| intelligence | 情报分析 | 趋势分析 |
+| bettafish | 舆情深度分析 | 情感分析 |
+| mirofish | 预测性分析 | 趋势预测 |
+
+## 输出格式
+```json
+{
+    "agent": "llm|search|intelligence|bettafish|mirofish",
+    "action": "具体动作名称",
+    "reasoning": "简短推理说明",
+    "confidence": 0.0-1.0
+}
+```
+```"""
+
+---
+
+## 十五、GitHub Trending + README 摘要 (2026-03-09)
+
+### 15.1 GitHub Trending 数据源
+
+**新增模块**: `src/intelligence/github_trending.py`
+
+功能:
+- 获取 GitHub 热门仓库 (按主题: llm, ai-agent, crypto, frontier-tech)
+- 按星数排序
+- 估算每日星数增长
+
+**搜索查询**:
+```python
+TRENDING_QUERIES = [
+    {"topic": "llm", "q": "llm large-language-model in:topics,name,description"},
+    {"topic": "ai-agent", "q": "ai-agent autonomous-agent in:topics,name,description"},
+    {"topic": "crypto", "q": "blockchain ethereum solidity defi in:topics,name,description"},
+    {"topic": "frontier-tech", "q": "machine-learning deep-learning in:topics,name,description"},
+]
+```
+
+### 15.2 README 摘要生成
+
+**新增模块**: `src/intelligence/readme_fetcher.py`
+
+功能:
+- 自动获取仓库 README.md 内容
+- 使用 LLM 生成项目简要说明
+- 支持批量获取
+
+**使用示例**:
+```python
+from src.intelligence import GitHubTrendingFetcher, ReadmeFetcher, ReadmeSummarizer
+
+# 获取 Trending
+fetcher = GitHubTrendingFetcher()
+repos = fetcher.fetch()
+
+# 获取 README 并生成摘要
+readme_fetcher = ReadmeFetcher()
+summarizer = ReadmeSummarizer(llm_client)
+
+for repo in repos[:5]:
+    readme = readme_fetcher.fetch(repo.repo)
+    if readme:
+        summary = summarizer.summarize(readme, repo.name)
+        repo.summary = summary
+```
+
+### 15.3 MD 生成器更新
+
+**更新文件**: `src/storage/md_generator.py`
+
+新增方法:
+- `generate_github_trending()` - 生成 GitHub Trending 摘要
+
+### 15.4 环境变量
+
+```bash
+# GitHub Token (可选，提高 API 限制)
+GITHUB_TOKEN=
+```
+
+---
+
+## 十六、Summarize CLI 集成 (2026-03-09)
+
+### 16.1 功能特性
+
+基于 [summarize-1.0.0 skill](https://summarize.sh) 集成，提供:
+
+- **URL 总结** - 网页内容摘要
+- **文件总结** - PDF、图片、音频文件
+- **YouTube 总结** - 视频内容摘要
+- **Firecrawl 支持** - 抓取被屏蔽的网站
+- **Apify 支持** - YouTube 抓取 fallback
+
+### 16.2 使用方法
+
+```python
+from src.intelligence import SummarizeClient, create_summarize_client
+
+# 创建客户端
+client = create_summarize_client(
+    model="google/gemini-2.0-flash-exp",
+    api_key="your-api-key",
+    firecrawl_api_key="your-firecrawl-key",  # 可选
+    apify_api_token="your-apify-token",       # 可选
+)
+
+# 总结 URL
+result = await client.summarize_url(
+    "https://example.com",
+    length="medium",
+    firecrawl="auto",  # auto/off/always
+)
+
+# 总结 YouTube
+result = await client.summarize_youtube(
+    "https://youtu.be/xxx",
+    length="medium",
+    use_apify=True,
+)
+
+# 总结文件
+result = await client.summarize_file(
+    "/path/to/file.pdf",
+    length="medium",
+)
+
+# JSON 格式输出
+result = await client.summarize_json(url="https://example.com")
+```
+
+### 16.3 支持的 LLM 模型
+
+| 模型 | 环境变量 |
+|------|----------|
+| Google Gemini | `GEMINI_API_KEY` |
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| xAI | `XAI_API_KEY` |
+
+### 16.4 配置文件
+
+可选配置文件: `~/.summarize/config.json`
+
+```json
+{
+    "model": "google/gemini-2.0-flash-exp"
+}
+```
+
+### 16.5 安装
+
+```bash
+# macOS
+brew install steipete/tap/summarize
+
+# 验证
+summarize --version
+```
+
+---
+
+## 十七、NAS 部署手册 (2026-03-09)
+
+### 17.1 部署架构
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        NAS (192.168.1.2)                        │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
+│  │ PostgreSQL  │  │    Redis   │  │    S3/RustFs Storage   │ │
+│  │  :45041     │  │   :40967   │  │      :37163            │ │
+│  │ + pgvector  │  │             │  │   (mightyoung bucket)  │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────────┘ │
+│         │                │                      │                 │
+│         └────────────────┼──────────────────────┘                 │
+│                          │                                        │
+│                    ┌─────▼─────┐                                  │
+│                    │  mihomo   │  (代理服务 :7890)                │
+│                    │  :7890    │                                  │
+│                    └───────────┘                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Docker 容器
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Docker Container                               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              message-hub-gateway                         │   │
+│  │  - FastAPI Gateway (:8080/8081)                         │   │
+│  │  - Agent Pool                                           │   │
+│  │  - Intelligence Pipeline                                │   │
+│  │  - Feishu/Telegram Adapter                             │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 17.2 NAS 服务前置要求
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| PostgreSQL + pgvector | 45041 | 向量数据库 |
+| Redis | 40967 | 缓存、会话 |
+| S3/RustFs | 37163 | MD 文件存储 |
+| mihomo | 7890 | HTTP/HTTPS 代理 |
+
+### 17.3 部署文件
+
+- `docs/deployment-nas.md` - 完整部署手册
+- `scripts/deploy-nas.sh` - 快速部署脚本
+
+### 17.4 快速部署
+
+```bash
+# 1. 复制配置
+cp .env.example .env
+nano .env
+
+# 2. 运行部署脚本
+bash scripts/deploy-nas.sh
+
+# 或使用 docker-compose
+docker-compose up -d
+```
+
+### 17.5 验证部署
+
+```bash
+# 健康检查
+curl http://localhost:8080/health
+
+# 查看状态
+curl http://localhost:8080/health/detail
+```

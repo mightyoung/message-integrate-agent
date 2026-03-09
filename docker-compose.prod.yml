@@ -1,0 +1,125 @@
+# ============================================================
+# Message Integrate Agent - Production Docker Compose
+# ============================================================
+#
+# 架构说明:
+#   - gateway: 主服务，飞书 WebSocket 长连接
+#   - bettafish: 舆情分析服务
+#   - mirofish: 预测分析服务
+#
+# 依赖:
+#   - mihomo: 代理服务（需在主机上运行）
+#
+# 一键部署: docker-compose -f docker-compose.prod.yml up -d
+#
+# ============================================================
+
+services:
+  # -------------------------------------------------------
+  # Main Gateway Service
+  # -------------------------------------------------------
+  gateway:
+    image: message-integrate-agent:prod
+    container_name: message-hub-gateway
+    expose:
+      - "8080"
+      - "8081"
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./config:/app/config:ro
+      - message-hub-logs:/app/logs
+      - message-hub-learnings:/app/.learnings
+    env_file:
+      - .env.prod
+    environment:
+      # 飞书 WebSocket 长连接模式
+      - FEISHU_CONNECTION_MODE=websocket
+      # 生产环境
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    networks:
+      - message-hub-net
+    depends_on:
+      bettafish:
+        condition: service_started
+      mirofish:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    security_opt:
+      - no-new-privileges:true
+
+  # -------------------------------------------------------
+  # BettaFish - 舆情分析服务
+  # -------------------------------------------------------
+  bettafish:
+    image: bettafish:latest
+    container_name: message-hub-bettafish
+    expose:
+      - "5000"
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - message-hub-net
+
+  # -------------------------------------------------------
+  # MiroFish - 预测分析服务
+  # -------------------------------------------------------
+  mirofish:
+    image: mirofish:latest
+    container_name: message-hub-mirofish
+    expose:
+      - "5001"
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - message-hub-net
+
+# -------------------------------------------------------
+# Networks
+# -------------------------------------------------------
+networks:
+  message-hub-net:
+    driver: bridge
+
+# -------------------------------------------------------
+# Volumes
+# -------------------------------------------------------
+volumes:
+  message-hub-logs:
+  message-hub-learnings:

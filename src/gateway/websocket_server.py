@@ -63,11 +63,16 @@ class WebSocketGateway:
         self.keyword_router = None
         self.ai_router = None
         self.agent_registry = None
+        self.agent_loop = None
+        self.checkpoint_manager = None
+        self.feedback_service = None
         self.pipeline = MessagePipeline(
             keyword_router=None,
             ai_router=None,
             agent_pool=None,
             adapter_registry=adapter_registry,
+            agent_loop=None,
+            checkpoint_manager=None,
         )
 
         self._setup_routes()
@@ -248,6 +253,8 @@ class WebSocketGateway:
         elif response_text:
             logger.info(f"Response to {message.platform}: {response_text[:100]}...")
 
+        return response_text
+
     async def _send_via_adapter(self, platform: str, user_id: str, content: str):
         """Send message back via platform adapter."""
         try:
@@ -405,9 +412,38 @@ class WebSocketGateway:
         self.agent_registry = registry
         logger.info("Agent registry connected to gateway")
 
+    def set_agent_loop(self, agent_loop, checkpoint_manager=None):
+        """Set the agent loop for deep processing."""
+        self.agent_loop = agent_loop
+        self.checkpoint_manager = checkpoint_manager
+        self.pipeline.set_components(
+            agent_loop=agent_loop,
+            checkpoint_manager=checkpoint_manager,
+        )
+        logger.info("AgentLoop connected to gateway")
+
+    def set_feedback_service(self, feedback_service):
+        """Set feedback service and register routes."""
+        from src.feedback.api import setup_feedback_routes
+
+        self.feedback_service = feedback_service
+        setup_feedback_routes(self.app, feedback_service)
+        logger.info("Feedback service connected to gateway")
+
     async def start(self):
         """Start the gateway server."""
         import uvicorn
+
+        # Connect all platform adapters (WebSocket long connections)
+        if self.adapter_registry:
+            logger.info("Connecting platform adapters...")
+            connect_results = await self.adapter_registry.connect_all()
+            for platform, success in connect_results.items():
+                if success:
+                    logger.info(f"✓ {platform} adapter connected")
+                else:
+                    logger.warning(f"✗ {platform} adapter connection failed")
+
         config = uvicorn.Config(
             self.app,
             host=self.host,

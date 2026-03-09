@@ -1,9 +1,30 @@
+# ============================================================
+# Message Integrate Agent - Docker Compose
+# 一键启动: docker-compose up -d
+# ============================================================
+#
+# 代理说明:
+#   - mihomo 运行在 NAS (192.168.1.2) 上
+#   - gateway 通过 HTTP_PROXY 环境变量使用代理
+#   - 飞书直连国内，不走代理 (NO_PROXY)
+#
+
 services:
+  # -------------------------------------------------------
+  # Main Gateway Service (Message Hub)
+  # -------------------------------------------------------
   gateway:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
     container_name: message-hub-gateway
+    expose:
+      - "8080"
+      - "8081"
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -14,9 +35,11 @@ services:
     env_file:
       - .env
     environment:
-      - HTTP_PROXY=${HTTP_PROXY}
-      - HTTPS_PROXY=${HTTPS_PROXY}
-      - NO_PROXY=${NO_PROXY}
+      # 代理配置 - 指向 NAS 上的 mihomo
+      - HTTP_PROXY=${MIHOMO_HTTP_PROXY:-http://192.168.1.2:7890}
+      - HTTPS_PROXY=${MIHOMO_HTTPS_PROXY:-http://192.168.1.2:7890}
+      # 飞书直连，不走代理
+      - NO_PROXY=localhost,127.0.0.1,api.feishu.cn,open.feishu.cn,192.168.0.0/16
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -29,12 +52,39 @@ services:
       options:
         max-size: "100m"
         max-file: "3"
+    networks:
+      - message-hub-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
-  # Optional: Proxy service (v2ray)
-  # proxy:
-  #   image: v2fly/v2ray-core
-  #   container_name: message-hub-proxy
-  #   volumes:
-  #     - ./config/v2ray:/etc/v2ray
-  #   network_mode: "service:gateway"
-  #   restart: unless-stopped
+  # -------------------------------------------------------
+  # ngrok Sidecar - 公网隧道
+  # -------------------------------------------------------
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: message-hub-ngrok
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - NGROK_REGION=ap
+    expose:
+      - "4040"
+      - "4041"
+    ports:
+      - "4040:4040"
+      - "4041:4041"
+    restart: unless-stopped
+    networks:
+      - message-hub-net
+
+# -------------------------------------------------------
+# Networks
+# -------------------------------------------------------
+networks:
+  message-hub-net:
+    driver: bridge
+    name: message-hub-network

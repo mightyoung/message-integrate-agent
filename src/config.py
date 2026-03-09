@@ -1,12 +1,42 @@
 """
 Configuration module for Message Integrate Agent
 """
+import os
+import re
 from pathlib import Path
 from typing import Optional
 
 import yaml
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def resolve_env_vars(value):
+    """Resolve ${VAR} environment variable placeholders in a string."""
+    if not isinstance(value, str):
+        return value
+    # Match ${VAR} pattern
+    pattern = r'\$\{([^}]+)\}'
+    matches = re.findall(pattern, value)
+    if not matches:
+        return value
+    # Replace each ${VAR} with environment variable
+    def replace(match):
+        var_name = match.group(1)
+        return os.environ.get(var_name, value)  # Keep original if not found
+    return re.sub(pattern, replace, value)
+
+
+def resolve_config_env_vars(config):
+    """Recursively resolve environment variables in config object."""
+    for field_name in config.model_fields:
+        value = getattr(config, field_name)
+        if isinstance(value, str):
+            resolved = resolve_env_vars(value)
+            setattr(config, field_name, resolved)
+        elif hasattr(value, 'model_fields'):  # Nested pydantic model
+            resolve_config_env_vars(value)
+    return config
 
 
 class GatewayConfig(BaseModel):
@@ -115,4 +145,4 @@ def load_config() -> AppConfig:
                 if "search" in yaml_config:
                     config.search = SearchConfig(**yaml_config["search"])
 
-    return config
+    return resolve_config_env_vars(config)

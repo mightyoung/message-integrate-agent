@@ -15,12 +15,37 @@ Heartbeat Cycle Engine - 自主驱动的"脉搏"
 import asyncio
 import json
 import os
+import shutil
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from loguru import logger
+
+
+class LazyLoader:
+    """懒加载器 - 避免在函数内部导入模块"""
+
+    _cache: Dict[str, Any] = {}
+
+    @classmethod
+    def get(cls, module_path: str, attr: str = None):
+        """懒加载模块"""
+        key = f"{module_path}:{attr}" if attr else module_path
+        if key not in cls._cache:
+            try:
+                import importlib
+                module = importlib.import_module(module_path)
+                cls._cache[key] = getattr(module, attr) if attr else module
+            except ImportError as e:
+                cls._cache[key] = None
+                logger.warning(f"懒加载失败 {module_path}: {e}")
+        return cls._cache[key]
+
+
+# 模块级导入 - 标准库和第三方库
 from loguru import logger
 
 
@@ -41,6 +66,7 @@ class HeartbeatStep(Enum):
     SELF_REFLECTION = "self_reflection"          # 自我反思
     SKILL_UPDATE = "skill_update"               # 技能更新
     NOTIFICATION_CHECK = "notification_check"   # 通知检查
+    INTELLIGENCE_GATHERING = "intelligence_gathering"  # 情报收集
 
 
 class HeartbeatTask(ABC):
@@ -77,78 +103,147 @@ class HeartbeatTask(ABC):
 
 
 class InformationIntakeTask(HeartbeatTask):
-    """信息摄入任务 - 使用搜索工具获取最新信息"""
+    """信息摄入任务 - 使用分级分类搜索获取最新信息
+
+    分层策略:
+    - Tier 1: 热榜直接获取 (Hacker News, GitHub Trending) - 无需代理
+    - Tier 2: RSS 新闻订阅 (WorldMonitor) - 已有实现
+    - Tier 3: 学术论文 (arXiv) - 无需代理
+    - Tier 4: Tavily 智能搜索 - 仅作为补充
+    """
 
     def __init__(self):
         super().__init__("information_intake", enabled=True)
+
+        # 扩展主题列表，覆盖多个分类
         self.topics = [
-            "AI agent architecture",
-            "autonomous AI systems",
-            "LLM self-improvement",
+            # 热榜类
+            {"query": "AI trending", "category": "hot"},
+            {"query": "github trending", "category": "hot"},
+            # 新闻类
+            {"query": "AI news", "category": "news"},
+            {"query": "tech", "category": "news"},
+            # 论文类
+            {"query": "LLM research", "category": "paper"},
         ]
-        self.max_articles = 5
+        self.max_articles = 10
+
+        # 懒加载信息获取器
+        self._intake = None
+
+    def _get_intake(self):
+        """懒加载信息获取器"""
+        if self._intake is None:
+            try:
+                from src.intelligence.intake import get_information_intake
+                import os
+                proxy_url = os.environ.get("HTTP_PROXY") or os.environ.get("HTTPS_PROXY")
+                self._intake = get_information_intake(proxy_url=proxy_url)
+            except ImportError as e:
+                logger.warning(f"信息获取器导入失败: {e}")
+        return self._intake
 
     async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """执行信息摄入 - 真实调用搜索API"""
-        logger.info("🔍 [Heartbeat] 开始信息摄入...")
+        """执行信息摄入 - 使用分级分类系统"""
+        logger.info("🔍 [Heartbeat] 开始信息摄入 (分级分类)...")
 
         articles = []
 
-        # 使用已有的搜索工具
-        try:
-            from src.mcp.tools.search import search_web
+        # 获取信息获取器
+        intake = self._get_intake()
+        if not intake:
+            logger.warning("信息获取器不可用，使用备用方案")
+            return await self._fallback_intake()
 
-            for topic in self.topics[:2]:  # 限制主题数量
-                try:
-                    # 调用搜索工具
+        try:
+            # 1. 首先获取热榜 (Tier 1)
+            hot_items = await intake.intake(category="hot", max_items=5)
+            for item in hot_items:
+                articles.append({
+                    "category": item.category,
+                    "source": item.source,
+                    "title": item.title,
+                    "summary": item.content[:200],
+                    "url": item.url,
+                    "topic": "hot",
+                    "timestamp": item.timestamp.isoformat() if item.timestamp else datetime.now().isoformat(),
+                })
+
+            # 2. 获取新闻 (Tier 2)
+            news_items = await intake.intake(category="news", max_items=5)
+            for item in news_items:
+                articles.append({
+                    "category": item.category,
+                    "source": item.source,
+                    "title": item.title,
+                    "summary": item.content[:200],
+                    "url": item.url,
+                    "topic": "news",
+                    "timestamp": item.timestamp.isoformat() if item.timestamp else datetime.now().isoformat(),
+                })
+
+            # 3. 获取学术论文 (Tier 3)
+            paper_items = await intake.intake(category="paper", max_items=3)
+            for item in paper_items:
+                articles.append({
+                    "category": item.category,
+                    "source": item.source,
+                    "title": item.title,
+                    "summary": item.content[:300],
+                    "url": item.url,
+                    "topic": "paper",
+                    "timestamp": item.timestamp.isoformat() if item.timestamp else datetime.now().isoformat(),
+                })
+
+            # 统计各分类数量
+            hot_count = len([a for a in articles if a.get("category") == "hot"])
+            news_count = len([a for a in articles if a.get("category") == "news"])
+            paper_count = len([a for a in articles if a.get("category") == "paper"])
+
+            logger.info(f"📖 [Heartbeat] 信息摄入完成: 热榜 {hot_count} | 新闻 {news_count} | 论文 {paper_count}")
+
+        except Exception as e:
+            logger.error(f"信息摄入失败: {e}")
+            # 降级到备用方案
+            return await self._fallback_intake()
+
+        self.mark_success()
+        return {
+            "articles": articles,
+            "count": len(articles),
+            "breakdown": {
+                "hot": hot_count,
+                "news": news_count,
+                "paper": paper_count,
+            }
+        }
+
+    async def _fallback_intake(self) -> List[Dict]:
+        """备用信息摄入 - 使用旧的 Tavily 方式"""
+        articles = []
+
+        # 使用懒加载获取搜索工具
+        search_web = LazyLoader.get("src.mcp.tools.search", "search_web")
+
+        topics = ["AI agent architecture", "autonomous AI systems"]
+        for topic in topics:
+            try:
+                if search_web:
                     results = await search_web(topic, max_results=self.max_articles)
                     if isinstance(results, list):
                         for r in results:
                             articles.append({
+                                "category": "general",
                                 "source": r.get("url", "unknown"),
                                 "title": r.get("title", "Untitled"),
                                 "summary": r.get("content", "")[:200],
                                 "topic": topic,
                                 "timestamp": datetime.now().isoformat(),
                             })
-                except Exception as e:
-                    logger.warning(f"搜索 {topic} 失败: {e}")
-
-        except ImportError:
-            logger.warning("搜索工具不可用，使用本地信息源")
-            # 备用：从本地日志和配置读取
-            articles = await self._fallback_intake()
-
-        logger.info(f"📖 [Heartbeat] 读取了 {len(articles)} 篇内容")
-
-        self.mark_success()
-        return {
-            "articles": articles,
-            "count": len(articles),
-        }
-
-    async def _fallback_intake(self) -> List[Dict]:
-        """备用信息摄入 - 从本地读取"""
-        articles = []
-
-        # 读取最近的日志文件
-        log_path = Path("logs/app.log")
-        if log_path.exists():
-            try:
-                content = log_path.read_text()
-                # 提取错误和警告
-                lines = content.split("\n")
-                errors = [l for l in lines if "ERROR" in l][-5:]
-                for err in errors:
-                    articles.append({
-                        "source": "local_logs",
-                        "title": "System Error Pattern",
-                        "summary": err[:200],
-                        "topic": "system_health",
-                        "timestamp": datetime.now().isoformat(),
-                    })
             except Exception as e:
-                logger.warning(f"读取日志失败: {e}")
+                logger.warning(f"搜索 {topic} 失败: {e}")
+
+        logger.info(f"📖 [Heartbeat] 备用读取了 {len(articles)} 篇内容")
 
         return articles
 
@@ -277,8 +372,8 @@ class SocialMaintenanceTask(HeartbeatTask):
         health_status = {}
 
         # 检查各平台适配器状态
-        try:
-            from src.adapters.registry import get_adapter_registry
+        get_adapter_registry = LazyLoader.get("src.adapters.registry", "get_adapter_registry")
+        if get_adapter_registry:
             registry = get_adapter_registry()
 
             for platform in platforms:
@@ -304,8 +399,7 @@ class SocialMaintenanceTask(HeartbeatTask):
                         "status": "error",
                         "error": str(e),
                     })
-
-        except ImportError:
+        else:
             logger.warning("适配器注册表不可用")
             for platform in platforms:
                 messages.append({
@@ -314,12 +408,8 @@ class SocialMaintenanceTask(HeartbeatTask):
                 })
 
         # 检查活跃连接
-        try:
-            from src.gateway.websocket_server import WebSocketGateway
-            # 简化：记录需要检查
-            active_connections = 0
-        except ImportError:
-            active_connections = 0
+        WebSocketGateway = LazyLoader.get("src.gateway.websocket_server", "WebSocketGateway")
+        active_connections = 0
 
         logger.info(f"👥 [Heartbeat] 检查了 {len(messages)} 个平台")
 
@@ -346,8 +436,8 @@ class SelfReflectionTask(HeartbeatTask):
         notifications = []
 
         # 1. 从可观测性服务获取指标
-        try:
-            from src.observability import get_observability_service
+        get_observability_service = LazyLoader.get("src.observability", "get_observability_service")
+        if get_observability_service:
             observability = get_observability_service()
             metrics = observability.metrics.get_metrics()
 
@@ -362,13 +452,12 @@ class SelfReflectionTask(HeartbeatTask):
                     "value": error_rate,
                     "action": "需要检查错误率上升原因",
                 })
-
-        except ImportError:
+        else:
             logger.warning("可观测性服务不可用")
 
         # 2. 从反馈服务获取用户反馈
-        try:
-            from src.feedback import get_feedback_service
+        get_feedback_service = LazyLoader.get("src.feedback", "get_feedback_service")
+        if get_feedback_service:
             feedback_service = get_feedback_service()
             stats = feedback_service.get_stats()
 
@@ -378,8 +467,7 @@ class SelfReflectionTask(HeartbeatTask):
                     "value": stats.thumbs_down_count,
                     "action": "需要分析负面反馈原因",
                 })
-
-        except ImportError:
+        else:
             logger.warning("反馈服务不可用")
 
         # 3. 从心跳获取任务统计
@@ -495,9 +583,9 @@ class SkillUpdateTask(HeartbeatTask):
             })
 
         # 3. 尝试重新加载技能
-        if updates:
+        get_skills_loader = LazyLoader.get("src.skills.loader", "get_skills_loader")
+        if updates and get_skills_loader:
             try:
-                from src.skills.loader import get_skills_loader
                 loader = get_skills_loader()
                 await loader.reload_skills()
                 logger.info(f"⚡ [Heartbeat] 重新加载了技能")
@@ -514,6 +602,50 @@ class SkillUpdateTask(HeartbeatTask):
             "updates": updates,
             "count": len(updates),
         }
+
+
+class IntelligenceGatheringTask(HeartbeatTask):
+    """情报收集任务 - 定期获取并推送情报"""
+
+    def __init__(self):
+        super().__init__("intelligence_gathering", enabled=True)
+        self._intelligence_pipeline = None
+        self._last_run = None
+
+    def set_pipeline(self, pipeline):
+        """设置情报流水线"""
+        self._intelligence_pipeline = pipeline
+
+    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """执行情报收集和推送"""
+        logger.info("📡 [Heartbeat] 开始情报收集...")
+
+        if not self._intelligence_pipeline:
+            logger.warning("IntelligencePipeline not configured, skipping")
+            self.mark_skipped("No pipeline configured")
+            return {"pushed": 0, "skipped": True}
+
+        try:
+            # 处理情报 (获取→分析→评分→推送)
+            result = await self._intelligence_pipeline.process()
+
+            if result:
+                pushed_count = len(result.get("pushed", []))
+                logger.info(f"📡 [Heartbeat] 推送了 {pushed_count} 条情报")
+                self.mark_success()
+                return {
+                    "pushed": pushed_count,
+                    "result": result,
+                }
+            else:
+                logger.info("📡 [Heartbeat] 没有需要推送的情报")
+                self.mark_success()
+                return {"pushed": 0}
+
+        except Exception as e:
+            logger.error(f"📡 [Heartbeat] 情报收集失败: {e}")
+            self.mark_failed(str(e))
+            return {"error": str(e)}
 
 
 class NotificationCheckTask(HeartbeatTask):
@@ -599,11 +731,7 @@ class NotificationCheckTask(HeartbeatTask):
         pending = []
 
         # 检查推送队列
-        try:
-            from src.push import get_push_service
-            # 简化：返回空列表
-        except ImportError:
-            pass
+        get_push_service = LazyLoader.get("src.push", "get_push_service")
 
         return pending
 
@@ -612,11 +740,7 @@ class NotificationCheckTask(HeartbeatTask):
         activity = []
 
         # 检查新用户反馈
-        try:
-            from src.feedback import get_feedback_service
-            # 简化：返回空列表
-        except ImportError:
-            pass
+        get_feedback_service = LazyLoader.get("src.feedback", "get_feedback_service")
 
         return activity
 
@@ -672,6 +796,7 @@ class HeartbeatEngine:
         self.register_task(HeartbeatStep.SELF_REFLECTION, SelfReflectionTask())
         self.register_task(HeartbeatStep.SKILL_UPDATE, SkillUpdateTask())
         self.register_task(HeartbeatStep.NOTIFICATION_CHECK, NotificationCheckTask())
+        self.register_task(HeartbeatStep.INTELLIGENCE_GATHERING, IntelligenceGatheringTask())
 
     def register_task(self, step: HeartbeatStep, task: HeartbeatTask):
         """注册心跳任务"""

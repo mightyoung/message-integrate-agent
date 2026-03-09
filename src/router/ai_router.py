@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from loguru import logger
 
 from src.mcp.tools.llm import chat_with_llm
+from src.prompts import get_prompt
 
 
 class AIRouter:
@@ -23,8 +24,12 @@ class AIRouter:
         self.model = config.get("model", "gpt-4")
         self.max_tokens = config.get("max_tokens", 200)
         self.temperature = config.get("temperature", 0.3)
-        self.system_prompt = config.get("system_prompt") or self._default_prompt()
-        self.available_agents = config.get("available_agents", ["llm", "search", "api"])
+        # Use optimized prompts from src/prompts
+        self.system_prompt = config.get("system_prompt") or get_prompt("intent_router")
+        self.available_agents = config.get(
+            "available_agents",
+            ["llm", "search", "intelligence", "bettafish", "mirofish"]
+        )
 
     def _default_prompt(self) -> str:
         """Default system prompt for intent recognition."""

@@ -1,0 +1,151 @@
+# ============================================================
+# Message Integrate Agent - Production Docker Compose
+# ============================================================
+#
+# 架构说明:
+#   - mihomo: 代理服务 (Clash.Meta)
+#   - gateway: 主服务，飞书 WebSocket 长连接
+#   - bettafish: 舆情分析服务
+#   - mirofish: 预测分析服务
+#
+# 一键部署: docker-compose -f docker-compose.prod.yml up -d
+#
+# ============================================================
+
+services:
+  # -------------------------------------------------------
+  # Mihomo - 代理服务 (Clash)
+  # -------------------------------------------------------
+  mihomo:
+    image: dreamacro/clash:latest
+    container_name: message-hub-mihomo
+    ports:
+      - "7890:7890"    # HTTP 代理
+      - "7891:7891"    # SOCKS5 代理
+      - "9090:9090"    # 控制面板
+    volumes:
+      - clash-data:/root/.config/clash
+      - ./config/clash/config-lan.yaml:/config.yaml:ro
+    command: ["/clash", "-f", "/config.yaml"]
+    environment:
+      - CLASH_SECRET=message-hub
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - message-hub-net
+
+  # -------------------------------------------------------
+  # Main Gateway Service
+  # -------------------------------------------------------
+  gateway:
+    image: message-integrate-agent:prod
+    container_name: message-hub-gateway
+    expose:
+      - "8080"
+      - "8081"
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./config:/app/config:ro
+      - message-hub-logs:/app/logs
+      - message-hub-learnings:/app/.learnings
+    env_file:
+      - .env.prod
+    environment:
+      - HTTP_PROXY=http://mihomo:7890
+      - HTTPS_PROXY=http://mihomo:7890
+      - http_proxy=http://mihomo:7890
+      - https_proxy=http://mihomo:7890
+      - NO_PROXY=localhost,127.0.0.1,feishu.cn,open.feishu.cn,api.feishu.cn,192.168.0.0/16,10.0.0.0/8
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+    networks:
+      - message-hub-net
+    depends_on:
+      mihomo:
+        condition: service_started
+      bettafish:
+        condition: service_started
+      mirofish:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    security_opt:
+      - no-new-privileges:true
+
+  # -------------------------------------------------------
+  # BettaFish - 舆情分析服务
+  # -------------------------------------------------------
+  bettafish:
+    image: bettafish:latest
+    container_name: message-hub-bettafish
+    expose:
+      - "5000"
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - message-hub-net
+
+  # -------------------------------------------------------
+  # MiroFish - 预测分析服务
+  # -------------------------------------------------------
+  mirofish:
+    image: mirofish:latest
+    container_name: message-hub-mirofish
+    expose:
+      - "5001"
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env.prod
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - message-hub-net
+
+# -------------------------------------------------------
+# Networks
+# -------------------------------------------------------
+networks:
+  message-hub-net:
+    driver: bridge
+
+# -------------------------------------------------------
+# Volumes
+# -------------------------------------------------------
+volumes:
+  message-hub-logs:
+  message-hub-learnings:
+  clash-data:

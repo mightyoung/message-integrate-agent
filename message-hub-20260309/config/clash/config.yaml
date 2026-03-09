@@ -1,0 +1,88 @@
+# ============================================================
+# Clash.Meta 配置文件
+# VMess 节点 + HTTP/SOCKS5 代理
+# ============================================================
+
+# API 控制面板
+external-controller: 0.0.0.0:9090
+
+# HTTP 代理端口
+allow-lan: true
+mode: rule
+
+# 代理端口
+port: 7890  # HTTP 代理
+socks-port: 7891  # SOCKS5 代理
+allow-lan: true
+
+# 认证（可选）
+# authentication:
+#   - "user:pass"
+
+# 外部控制面板
+external-ui: /ui
+# external-ui-url: https://github.com/MetaCubeX/metacubexd/releases/download/gh-pages/standalone.zip
+
+# 日志级别
+log-level: info
+
+# DNS 配置
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+
+# 代理节点
+proxies:
+  # VMess 节点
+  - name: "vmess-primary"
+    type: vmess
+    server: c59s3.portablesubmarines.com
+    port: 16255
+    uuid: 917f15f7-e9b8-47b3-87df-51b36fe63e8b
+    alterId: 0
+    cipher: auto
+    network: tcp
+    tls: true
+    skip-cert-verify: true
+    servername: c59s3.portablesubmarines.com
+
+# 代理组
+proxy-groups:
+  - name: "auto"
+    type: select
+    proxies:
+      - vmess-primary
+
+# 规则
+# 国内直连，海外代理
+rules:
+  # 飞书直连
+  - DOMAIN-SUFFIX,feishu.cn,DIRECT
+  - DOMAIN-SUFFIX,lark.cn,DIRECT
+  - DOMAIN-KEYWORD,open.feishu.cn,DIRECT
+  - DOMAIN-SUFFIX,open.feishu.cn,DIRECT
+
+  # 国内域名直连
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,qq.com,DIRECT
+  - DOMAIN-SUFFIX,taobao.com,DIRECT
+  - DOMAIN-SUFFIX,aliyun.com,DIRECT
+  - DOMAIN-SUFFIX,tencent.com,DIRECT
+
+  # 国内 IP 段直连（简化版）
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+
+  # OpenAI / Anthropic 直连（如果可以）
+  - DOMAIN-SUFFIX,api.openai.com,DIRECT
+  - DOMAIN-SUFFIX,api.anthropic.com,DIRECT
+
+  # 其他海外域名走代理
+  - GEOIP,CN,DIRECT
+  - MATCH,auto
