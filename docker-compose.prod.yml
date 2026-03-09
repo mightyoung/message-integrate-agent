@@ -27,7 +27,7 @@ services:
       - "7891:7891"
       - "9090:9090"
     volumes:
-      - ./config/clash:/root/.config/clash:ro
+      - ./config/clash:/root/.config/clash
     restart: unless-stopped
     networks:
       - message-hub-net
@@ -61,6 +61,8 @@ services:
       # 代理配置 - mihomo 代理
       - HTTP_PROXY=http://mihomo:7890
       - HTTPS_PROXY=http://mihomo:7890
+      - http_porxy=http://mihomo:7890
+      - https_porxy=http://mihomo:7890
       # 不走代理的域名 - LLM API 直连
       - NO_PROXY=localhost,127.0.0.1,api.feishu.cn,open.feishu.cn,192.168.0.0/16,api.deepseek.com,api.openai.com
     restart: unless-stopped
