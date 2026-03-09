@@ -73,6 +73,10 @@ async def chat_with_llm(
             client_kwargs["proxies"] = proxies
 
     try:
+        # 添加调试日志
+        logger.info(f"[LLM] 请求: base_url={base_url}, model={model}")
+        logger.info(f"[LLM] 代理: {proxies}")
+
         async with httpx.AsyncClient(**client_kwargs) as client:
             response = await client.post(
                 f"{base_url}/chat/completions",
@@ -88,6 +92,8 @@ async def chat_with_llm(
                 }
             )
 
+            logger.info(f"[LLM] 响应状态: {response.status_code}")
+
             if response.status_code == 200:
                 data = response.json()
                 choices = data.get("choices", [])
@@ -99,7 +105,9 @@ async def chat_with_llm(
                 try:
                     error_data = response.json()
                     error_msg += f" - {error_data.get('error', {}).get('message', '')}"
+                    logger.error(f"[LLM] 错误响应: {error_data}")
                 except Exception:
+                    logger.error(f"[LLM] 原始响应: {response.text}")
                     pass
                 return f"Error: {error_msg}"
 
