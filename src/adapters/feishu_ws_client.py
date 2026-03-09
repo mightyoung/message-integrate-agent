@@ -65,8 +65,7 @@ class FeishuWebSocketClient:
         飞书 SDK 需要为每个事件类型注册处理器，
         否则会返回 "processor not found" 错误
         """
-        import lark_oapi
-        from lark_oapi.event.dispatcher_handler import EventDispatcherHandlerBuilder
+        from lark_oapi.event.dispatcher_handler import EventDispatcherHandler
 
         builder = EventDispatcherHandler.builder(
             encrypt_key="",  # 如果启用了加密则填写
