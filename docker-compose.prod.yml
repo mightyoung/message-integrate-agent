@@ -6,15 +6,34 @@
 #   - gateway: 主服务，飞书 WebSocket 长连接
 #   - bettafish: 舆情分析服务
 #   - mirofish: 预测分析服务
+#   - mihomo: 代理服务
 #
 # 依赖:
-#   - mihomo: 代理服务（需在主机上运行）
+#   - mihomo: 代理服务（需要配置文件 clash.yaml）
 #
 # 一键部署: docker-compose -f docker-compose.prod.yml up -d
 #
 # ============================================================
 
 services:
+  # -------------------------------------------------------
+  # Mihomo Proxy Service
+  # -------------------------------------------------------
+  mihomo:
+    image: dreamacro/clash:latest
+    container_name: message-hub-mihomo
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+      - "9090:9090"
+    volumes:
+      - ./config/clash:/root/.config/clash:ro
+    restart: unless-stopped
+    networks:
+      - message-hub-net
+    # 允许外部流量通过代理
+    cap_add:
+      - NET_ADMIN
   # -------------------------------------------------------
   # Main Gateway Service
   # -------------------------------------------------------
@@ -39,6 +58,9 @@ services:
       # 生产环境
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
+      # 代理配置 - 如果 mihomo 不可用，设置为空让 LLM 直连
+      # - HTTP_PROXY=http://mihomo:7890
+      # - HTTPS_PROXY=http://mihomo:7890
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
@@ -54,10 +76,15 @@ services:
     networks:
       - message-hub-net
     depends_on:
+      mihomo:
+        condition: service_started
       bettafish:
         condition: service_started
       mirofish:
         condition: service_started
+    extra_hosts:
+      # 解决容器内解析主机名问题
+      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         limits:
