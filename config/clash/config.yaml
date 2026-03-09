@@ -6,14 +6,16 @@
 # API 控制面板
 external-controller: 0.0.0.0:9090
 
-# HTTP 代理端口
+# 允许局域网访问
 allow-lan: true
 mode: rule
 
-# 代理端口
+# 代理端口 - 监听所有接口
 port: 7890  # HTTP 代理
 socks-port: 7891  # SOCKS5 代理
-allow-lan: true
+
+# 明确指定绑定地址
+bind-address: 0.0.0.0
 
 # 认证（可选）
 # authentication:
