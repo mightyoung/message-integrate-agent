@@ -4,6 +4,7 @@
 #
 # 架构说明:
 #   - gateway: 主服务，飞书 WebSocket 长连接
+#   - mihomo: 代理服务（用于访问外网）
 #   - 数据存储在 NAS 上 (PostgreSQL, Redis, RustFs)
 #
 # 一键部署: docker-compose -f docker-compose.prod.yml up -d
@@ -12,12 +13,27 @@
 
 services:
   # -------------------------------------------------------
+  # Mihomo Proxy Service
+  # -------------------------------------------------------
+  mihomo:
+    image: dreamacro/clash:latest
+    container_name: message-hub-mihomo
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+      - "9090:9090"
+    volumes:
+      - ./config/clash:/root/.config/clash
+    restart: unless-stopped
+    networks:
+      - message-hub-net
+    cap_add:
+      - NET_ADMIN
+
+  # -------------------------------------------------------
   # Main Gateway Service
   # -------------------------------------------------------
   gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
     image: message-integrate-agent:prod
     container_name: message-hub-gateway
     expose:
@@ -34,6 +50,10 @@ services:
       - REDIS_HOST=192.168.1.2
       - REDIS_PORT=40967
       - S3_ENDPOINT_URL=http://192.168.1.2:37163
+      # 代理配置
+      - HTTP_PROXY=http://mihomo:7890
+      - HTTPS_PROXY=http://mihomo:7890
+      - NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,api.feishu.cn,open.feishu.cn
       # 生产环境
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -53,6 +73,10 @@ services:
       options:
         max-size: "100m"
         max-file: "5"
+    networks:
+      - message-hub-net
+    depends_on:
+      - mihomo
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
@@ -62,6 +86,13 @@ services:
         reservations:
           memory: 256M
           cpus: "0.25"
+
+# -------------------------------------------------------
+# Networks
+# -------------------------------------------------------
+networks:
+  message-hub-net:
+    driver: bridge
 
 # -------------------------------------------------------
 # Volumes
