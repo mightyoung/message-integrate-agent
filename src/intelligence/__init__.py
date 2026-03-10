@@ -35,6 +35,7 @@ from .worldmonitor_adapter import (
     create_worldmonitor_adapter,
 )
 from .github_trending import GitHubTrendingFetcher, GitHubTrendingItem
+from .reddit_fetcher import RedditFetcher, RedditItem, create_reddit_fetcher
 from .readme_fetcher import (
     ReadmeFetcher,
     ReadmeSummarizer,

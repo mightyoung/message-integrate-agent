@@ -50,6 +50,7 @@ class InformationClassifier:
             "trending", "hot", "top", "热搜", "趋势", "热门",
             "今日热点", "github trending", "hacker news",
             "product hunt", "最火", "爆火", "飙升",
+            "reddit", "r/all", "r/popular",
         ],
         InfoCategory.NEWS: [
             "news", "新闻", "资讯", "今日", "最新",
@@ -63,7 +64,7 @@ class InformationClassifier:
 
     # 分类对应的首选来源
     SOURCE_MAPPING = {
-        InfoCategory.HOT: ["hackernews", "github_trending", "producthunt"],
+        InfoCategory.HOT: ["hackernews", "github_trending", "producthunt", "reddit"],
         InfoCategory.NEWS: ["rss"],
         InfoCategory.PAPER: ["arxiv", "pubmed"],
         InfoCategory.GENERAL: ["tavily"],
@@ -150,7 +151,7 @@ class InformationClassifier:
         """
         configs = {
             InfoCategory.HOT: {
-                "sources": ["hackernews", "github_trending", "producthunt"],
+                "sources": ["hackernews", "github_trending", "producthunt", "reddit"],
                 "max_items": 20,
                 "use_proxy": False,  # 热榜 API 通常不需要代理
             },

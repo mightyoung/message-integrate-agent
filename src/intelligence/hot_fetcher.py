@@ -6,6 +6,7 @@ Tier 1: 热榜直接获取 (无需代理)
 - Hacker News API
 - GitHub Trending
 - Product Hunt
+- Reddit
 
 这些 API 通常可以直接访问，不需要代理
 """
@@ -18,6 +19,8 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from loguru import logger
+
+from .reddit_fetcher import RedditFetcher
 
 
 @dataclass
@@ -331,6 +334,7 @@ class HotFetcher:
             "github_trending": GitHubTrendingFetcher(max_items=max_items_per_source, proxy_url=proxy_url),
             "producthunt": ProductHuntFetcher(max_items=max_items_per_source, proxy_url=proxy_url),
             "weibo_hot": WeiboHotFetcher(max_items=max_items_per_source, proxy_url=proxy_url),
+            "reddit": RedditFetcher(max_items=max_items_per_source, proxy_url=proxy_url),
         }
 
     async def fetch_all(self, sources: Optional[List[str]] = None) -> List[HotItem]:
