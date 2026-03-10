@@ -43,6 +43,10 @@ cd $TEMP_DIR/$PACKAGE_NAME
 mkdir -p logs
 mkdir -p .learnings
 
+# 移除不需要的目录（精简版）
+rm -rf bettafish 2>/dev/null || true
+rm -rf mirofish 2>/dev/null || true
+
 # 设置脚本权限
 chmod +x deploy.sh
 
