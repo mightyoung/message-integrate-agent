@@ -35,3 +35,6 @@ requests>=2.31.0
 boto3>=1.34.0
 psycopg2-binary>=2.9.9
 redis>=5.0.0
+
+# Firecrawl - 网页抓取
+firecrawl>=1.0.0

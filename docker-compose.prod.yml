@@ -4,12 +4,9 @@
 #
 # 架构说明:
 #   - gateway: 主服务，飞书 WebSocket 长连接
-#   - bettafish: 舆情分析服务
-#   - mirofish: 预测分析服务
-#   - mihomo: 代理服务
-#
-# 依赖:
-#   - mihomo: 代理服务（需要配置文件 clash.yaml）
+#   - postgres: PostgreSQL + pgvector 数据库
+#   - redis: 缓存服务
+#   - minio: S3 兼容对象存储
 #
 # 一键部署: docker-compose -f docker-compose.prod.yml up -d
 #
@@ -17,27 +14,78 @@
 
 services:
   # -------------------------------------------------------
-  # Mihomo Proxy Service
+  # PostgreSQL + pgvector Database
   # -------------------------------------------------------
-  mihomo:
-    image: dreamacro/clash:latest
-    container_name: message-hub-mihomo
-    ports:
-      - "7890:7890"
-      - "7891:7891"
-      - "9090:9090"
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: message-hub-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: intelligence_db
     volumes:
-      - ./config/clash:/root/.config/clash
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
     restart: unless-stopped
     networks:
       - message-hub-net
-    # 允许外部流量通过代理
-    cap_add:
-      - NET_ADMIN
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------
+  # Redis Cache
+  # -------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: message-hub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - message-hub-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------
+  # MinIO S3 Storage
+  # -------------------------------------------------------
+  minio:
+    image: minio/minio
+    container_name: message-hub-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    restart: unless-stopped
+    networks:
+      - message-hub-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
   # -------------------------------------------------------
   # Main Gateway Service
   # -------------------------------------------------------
   gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     image: message-integrate-agent:prod
     container_name: message-hub-gateway
     expose:
@@ -46,25 +94,23 @@ services:
     ports:
       - "8080:8080"
       - "8081:8081"
+    env_file:
+      - .env.prod
+    environment:
+      # 数据库连接
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/intelligence_db
+      # Redis 连接
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # S3 连接
+      - S3_ENDPOINT_URL=http://minio:9000
+      # 生产环境
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
     volumes:
       - ./config:/app/config:ro
       - message-hub-logs:/app/logs
       - message-hub-learnings:/app/.learnings
-    env_file:
-      - .env.prod
-    environment:
-      # 飞书 WebSocket 长连接模式
-      - FEISHU_CONNECTION_MODE=websocket
-      # 生产环境
-      - ENVIRONMENT=production
-      - LOG_LEVEL=INFO
-      # 代理配置 - mihomo 代理
-      - HTTP_PROXY=http://mihomo:7890
-      - HTTPS_PROXY=http://mihomo:7890
-      - http_porxy=http://mihomo:7890
-      - https_porxy=http://mihomo:7890
-      # 不走代理的域名 - LLM API 直连
-      - NO_PROXY=localhost,127.0.0.1,api.feishu.cn,open.feishu.cn,192.168.0.0/16,api.deepseek.com,api.openai.com
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
@@ -80,14 +126,13 @@ services:
     networks:
       - message-hub-net
     depends_on:
-      mihomo:
-        condition: service_started
-      bettafish:
-        condition: service_started
-      mirofish:
-        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     extra_hosts:
-      # 解决容器内解析主机名问题
       - "host.docker.internal:host-gateway"
     deploy:
       resources:
@@ -96,50 +141,6 @@ services:
         reservations:
           memory: 256M
           cpus: "0.25"
-    security_opt:
-      - no-new-privileges:true
-
-  # -------------------------------------------------------
-  # BettaFish - 舆情分析服务
-  # -------------------------------------------------------
-  bettafish:
-    image: bettafish:latest
-    container_name: message-hub-bettafish
-    expose:
-      - "5000"
-    ports:
-      - "5000:5000"
-    env_file:
-      - .env.prod
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-    networks:
-      - message-hub-net
-
-  # -------------------------------------------------------
-  # MiroFish - 预测分析服务
-  # -------------------------------------------------------
-  mirofish:
-    image: mirofish:latest
-    container_name: message-hub-mirofish
-    expose:
-      - "5001"
-    ports:
-      - "5001:5001"
-    env_file:
-      - .env.prod
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "50m"
-        max-file: "3"
-    networks:
-      - message-hub-net
 
 # -------------------------------------------------------
 # Networks
@@ -152,5 +153,8 @@ networks:
 # Volumes
 # -------------------------------------------------------
 volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
   message-hub-logs:
   message-hub-learnings:
