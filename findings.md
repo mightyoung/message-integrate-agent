@@ -816,8 +816,8 @@ PG_DB_NAME=intelligence_db
 **S3/RustFs Storage (NAS)**:
 ```
 S3_ENDPOINT_URL=http://192.168.1.2:37163
-S3_ACCESS_KEY=7BG4U5KOh2dAkjeFlbcQ
-S3_SECRET_KEY=seIUqnd9YrMf0vbSz5c1iFAoJQDpwOEH6ZGPVgC2
+S3_ACCESS_KEY=your_access_key
+S3_SECRET_KEY=your_secret_key
 S3_BUCKET_NAME=mightyoung
 S3_REGION_NAME=us-east-1
 ```

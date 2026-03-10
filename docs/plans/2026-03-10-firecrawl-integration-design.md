@@ -270,7 +270,7 @@ intelligence:
 
 ```bash
 # .env.prod
-FIRECRAWL_API_KEY=fc-2ecc789c4a13436aadbd7f8f2a1b4cba  # 云服务 API Key
+FIRECRAWL_API_KEY=fc-xxxxxxxxxxxxxxxxxxxxxxxxxxxx  # 云服务 API Key
 ```
 
 ---
@@ -285,4 +285,4 @@ FIRECRAWL_API_KEY=fc-2ecc789c4a13436aadbd7f8f2a1b4cba  # 云服务 API Key
 | **成本影响** | 按需调用，云服务按次计费 |
 | **性能影响** | 异步批量抓取，影响较小 |
 
-**当前配置**: 使用 Firecrawl 云服务 (API Key: fc-2ecc789c...)
+**当前配置**: 使用 Firecrawl 云服务 (API Key: fc-xxxxx...)
