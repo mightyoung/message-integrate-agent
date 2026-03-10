@@ -6,6 +6,10 @@
 .env.local
 *.local
 
+# Clash proxy config (可能包含敏感代理信息)
+config/clash/
+docker-images/config/clash/
+
 # Python
 __pycache__/
 *.py[cod]

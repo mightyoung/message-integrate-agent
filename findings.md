@@ -768,9 +768,9 @@ score = recency * 0.2 + topic_match * 0.4 + credibility * 0.3 + feedback_adj * 0
 
 **Vmess 节点配置**：
 ```
-服务器: c59s3.portablesubmarines.com
-端口: 16255
-UUID: 917f15f7-e9b8-47b3-87df-51b36fe63e8b
+服务器: your-server.example.com
+端口: 12345
+UUID: 00000000-0000-0000-0000-000000000000
 协议: TCP + TLS
 跳过证书验证: true
 ```
