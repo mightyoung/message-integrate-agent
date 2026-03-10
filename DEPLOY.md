@@ -1,5 +1,5 @@
 # ============================================================
-# Message Integrate Agent - 一键部署说明
+# Message Integrate Agent - Docker 部署手册
 # ============================================================
 
 ## 部署架构
@@ -8,22 +8,18 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        NAS Docker Network                        │
 │                                                                 │
-│  ┌──────────────┐                                               │
-│  │   gateway    │                                               │
-│  │(Feishu WS)  │                                               │
-│  │   :8080      │                                               │
-│  └──────────────┘                                               │
-│         │                                                        │
-│         │  飞书长连接 (WebSocket)                               │
-│         └─────────────────────────────────────────────────────▶   │
+│  ┌──────────────┐                                             │
+│  │   gateway    │  飞书 WebSocket 长连接                       │
+│  │   :8080      │  定时推送情报 (学术论文/GitHub/Science)     │
+│  └──────────────┘                                             │
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
    飞书服务器
-   (wss://msg-frontier.feishu.cn)
+   (wss://msg-frontisonar.door.feishu.cn)
 
 ┌─────────────────────────────────────────────────────────────────┐
-│                        NAS 存储服务                             │
+│                        NAS 存储服务                              │
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │ PostgreSQL    │  │    Redis     │  │   RustFs     │     │
@@ -32,66 +28,94 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 新增功能 (v2.0)
+## 方式一：使用 Docker 镜像（推荐）
 
-### 情报推送功能
+### 步骤 1: 导入镜像
 
-| 功能 | 说明 | 触发方式 |
-|------|------|----------|
-| 学术论文 | 从 arXiv 获取最新 AI 相关论文 | 定时任务 |
-| GitHub Trending | 获取热门开源项目 | 定时任务 |
-| Science 热点 | 从 Science.org 抓取热点研究 | 定时任务 |
-| SciRobotics | 机器人领域热点 | 定时任务 |
-
-### LLM 内容生成
-
-- **学术论文风格**: 顶级科学家思维（精准、简洁、包含核心发现）
-- **GitHub 仓库风格**: 顶级开源工程师思维（实用、创新、可扩展）
-- **新闻标题风格**: 顶级新闻编辑思维（简洁有力、倒金字塔结构）
-
-## 上传到 NAS 的文件
-
-将以下文件上传到 NAS 的 `/volume1/docker/message-hub/` 目录：
-
-```
-message-hub/
-├── docker-compose.prod.yml    # 部署配置
-├── Dockerfile.prod            # 镜像构建
-├── .env.prod                 # 环境变量
-├── config/                   # 配置目录
-│   └── settings.yaml
-└── DEPLOY.md                # 说明
-```
-
-## 环境变量配置
-
-参考 `.env.prod.example` 配置以下环境变量：
+将 `message-integrate-agent-prod.tar` 文件上传到 NAS，然后执行：
 
 ```bash
-# ==================== LLM 配置 ====================
-DEEPSEEK_API_KEY=sk-xxxxx          # DeepSeek API Key（用于生成中文标题/概要）
+# 导入镜像
+docker load -i message-integrate-agent-prod.tar
 
-# ==================== Firecrawl 配置 ====================
-FIRECRAWL_API_KEY=fc-xxxxx         # Firecrawl API Key（用于抓取 Science.org）
+# 验证镜像
+docker images | grep message-integrate-agent
+```
 
-# ==================== GitHub 配置（可选）===============
-GITHUB_TOKEN=ghp_xxxxx             # GitHub Token（提高 API 限流）
+### 步骤 2: 配置环境变量
 
-# ==================== NAS 存储配置 ====================
-# PostgreSQL (NAS)
+```bash
+# 复制环境变量模板
+cp .env.prod.example .env.prod
+
+# 编辑配置
+nano .env.prod
+```
+
+需要配置的关键变量：
+
+```bash
+# 飞书配置
+FEISHU_APP_ID=your_app_id
+FEISHU_APP_SECRET=your_app_secret
+FEISHU_WEBHOOK_URL=your_webhook_url
+FEISHU_CONNECTION_MODE=websocket
+
+# LLM 配置
+DEEPSEEK_API_KEY=sk-xxxxx
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+
+# Firecrawl 配置
+FIRECRAWL_API_KEY=fc-xxxxx
+
+# NAS 存储
 DATABASE_URL=postgresql://postgres:postgres@192.168.1.2:45041/bs_generator_db
-
-# Redis (NAS)
 REDIS_HOST=192.168.1.2
 REDIS_PORT=40967
-
-# RustFs S3 (NAS)
 S3_ENDPOINT_URL=http://192.168.1.2:37163
-S3_ACCESS_KEY=your_access_key
-S3_SECRET_KEY=your_secret_key
-S3_BUCKET_NAME=mightyoung
+```
 
-# ==================== 定时任务配置 ====================
+### 步骤 3: 启动服务
+
+```bash
+# 启动服务
+docker-compose -f docker-compose.prod.yml up -d
+
+# 查看状态
+docker-compose -f docker-compose.prod.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.prod.yml logs -f
+```
+
+## 方式二：构建镜像
+
+### 步骤 1: 在 NAS 上构建
+
+```bash
+# 构建镜像
+docker build -f Dockerfile.prod -t message-integrate-agent:prod .
+
+# 导出镜像（可选）
+docker save message-integrate-agent:prod > message-integrate-agent-prod.tar
+```
+
+### 步骤 2: 启动服务
+
+同方式一的步骤 2 和步骤 3
+
+## 端口说明
+
+| 端口 | 服务 |
+|------|------|
+| 8080 | Gateway HTTP |
+| 8081 | WebSocket |
+
+## 定时任务配置
+
+在 `.env.prod` 中配置：
+
+```bash
 # 学术论文推送（每天 9:00）
 INTELLIGENCE_CRON_ACADEMIC=0 9 * * *
 
@@ -105,58 +129,7 @@ INTELLIGENCE_CRON_SCIENCE=0 11 * * *
 INTELLIGENCE_CRON_SCIROBOTICS=0 11 30 * * *
 ```
 
-## NAS 上执行
-
-### 1. 构建并启动服务
-
-```bash
-cd /volume1/docker/message-hub/
-
-# 重新构建镜像
-docker-compose -f docker-compose.prod.yml build
-
-# 启动服务
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### 2. 验证
-
-```bash
-# 查看状态
-docker-compose -f docker-compose.prod.yml ps
-
-# 健康检查
-curl http://localhost:8080/health
-
-# 查看日志
-docker-compose -f docker-compose.prod.yml logs -f
-```
-
-## 端口说明
-
-| 端口 | 服务 |
-|------|------|
-| 8080 | Gateway HTTP |
-| 8081 | WebSocket |
-
-## NAS 存储服务
-
-| 服务 | 地址 | 端口 |
-|------|------|------|
-| PostgreSQL | 192.168.1.2 | 45041 |
-| Redis | 192.168.1.2 | 40967 |
-| RustFs S3 | 192.168.1.2 | 37163 |
-
-## 飞书配置
-
-已配置为 **WebSocket 长连接**模式 (`FEISHU_CONNECTION_MODE=websocket`)
-
-- WebSocket 连接到 `wss://msg-frontier.feishu.cn`
-- 不需要公网 IP，客户端主动连接
-
-## API 调用
-
-### 手动触发情报推送
+## 手动触发推送
 
 ```bash
 # 学术论文推送
@@ -191,13 +164,35 @@ docker-compose -f docker-compose.prod.yml logs -f gateway
 docker exec -it message-hub-gateway /bin/bash
 ```
 
+## 验证
+
+```bash
+# 健康检查
+curl http://localhost:8080/health
+
+# 查看飞书连接状态
+curl http://localhost:8080/api/status
+```
+
 ## 常见问题
 
 ### Q: 无法连接飞书
-A: 检查网络连接: `docker-compose logs gateway`
+A: 检查网络连接和 FEISHU 配置是否正确
 
 ### Q: 情报推送失败
-A: 检查 FIRECRAWL_API_KEY 和 DEEPSEEK_API_KEY 是否配置正确
+A: 检查 FIRECRAWL_API_KEY 和 DEEPSEEK_API_KEY 配置
 
 ### Q: Science 抓取失败
-A: Firecrawl 可能被限流，检查 API 配额: `docker-compose logs gateway | grep Firecrawl`
+A: Firecrawl 可能被限流，检查 API 配额
+
+## 目录结构
+
+```
+message-hub-deploy/
+├── Dockerfile.prod          # Docker 镜像构建
+├── docker-compose.prod.yml # Docker Compose 配置
+├── .env.prod.example      # 环境变量模板
+├── config/               # 配置文件
+│   └── settings.yaml
+└── DEPLOY.md             # 本文档
+```

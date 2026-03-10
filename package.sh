@@ -33,19 +33,23 @@ cp -r docker-compose.prod.yml $TEMP_DIR/$PACKAGE_NAME/
 cp -r deploy.sh $TEMP_DIR/$PACKAGE_NAME/
 cp -r requirements.txt $TEMP_DIR/$PACKAGE_NAME/
 cp -r .env.prod.example $TEMP_DIR/$PACKAGE_NAME/
-cp -r src $TEMP_DIR/$PACKAGE_NAME/
-cp -r config $TEMP_DIR/$PACKAGE_NAME/
 cp -r DEPLOY.md $TEMP_DIR/$PACKAGE_NAME/
+cp -r README-DEPLOY.md $TEMP_DIR/$PACKAGE_NAME/
 
-# 创建目录结构
+# 复制 src 目录（排除 __pycache__）
+echo "复制源代码..."
+mkdir -p $TEMP_DIR/$PACKAGE_NAME/src
+rsync -av --exclude='__pycache__' --exclude='*.pyc' src/ $TEMP_DIR/$PACKAGE_NAME/src/
+
+# 复制 config 目录
+echo "复制配置..."
+cp -r config $TEMP_DIR/$PACKAGE_NAME/
+
+# 创建必要目录
 echo "创建目录结构..."
 cd $TEMP_DIR/$PACKAGE_NAME
 mkdir -p logs
 mkdir -p .learnings
-
-# 移除不需要的目录（精简版）
-rm -rf bettafish 2>/dev/null || true
-rm -rf mirofish 2>/dev/null || true
 
 # 设置脚本权限
 chmod +x deploy.sh
@@ -72,6 +76,6 @@ echo "部署步骤:"
 echo "  1. 解压: tar -xzvf ${PACKAGE_NAME}.tar.gz"
 echo "  2. 进入目录: cd $PACKAGE_NAME"
 echo "  3. 复制配置: cp .env.prod.example .env.prod"
-echo "  4. 修改配置: 编辑 .env.prod"
-echo "  5. 启动服务: ./deploy.sh"
+echo "  4. 修改配置: nano .env.prod"
+echo "  5. 启动服务: docker-compose -f docker-compose.prod.yml up -d"
 echo ""
