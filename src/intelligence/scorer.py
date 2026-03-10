@@ -37,6 +37,7 @@ class ScoredIntelligence:
     analysis_result: Any
     total_score: float
     match_reasons: List[str]
+    intelligence_id: str = ""
 
 
 class IntelligenceScorer:

@@ -15,6 +15,7 @@ Supports both webhook and WebSocket long connection modes for receiving and send
 import asyncio
 import hashlib
 import json
+import os
 import time
 from typing import Any, Dict, List, Optional
 
@@ -412,6 +413,12 @@ class FeishuAdapter(BaseAdapter):
 
     async def _handle_ws_bot_entered_event(self, message_data: Dict[str, Any]):
         """处理机器人进入私聊事件"""
+        # 检查是否启用欢迎消息
+        send_welcome = os.environ.get("FEISHU_SEND_WELCOME", "false").lower() == "true"
+        if not send_welcome:
+            logger.info("[Feishu WS Bot Entered] 欢迎消息已禁用")
+            return
+
         # 去重缓存：记录最近发送欢迎消息的 chat_id 和时间
         _welcome_cache: Dict[str, float] = {}
         _CACHE_DURATION = 60  # 60秒内不重复发送欢迎消息
