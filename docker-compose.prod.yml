@@ -4,81 +4,13 @@
 #
 # 架构说明:
 #   - gateway: 主服务，飞书 WebSocket 长连接
-#   - postgres: PostgreSQL + pgvector 数据库
-#   - redis: 缓存服务
-#   - minio: S3 兼容对象存储
+#   - 数据存储在 NAS 上 (PostgreSQL, Redis, RustFs)
 #
 # 一键部署: docker-compose -f docker-compose.prod.yml up -d
 #
 # ============================================================
 
 services:
-  # -------------------------------------------------------
-  # PostgreSQL + pgvector Database
-  # -------------------------------------------------------
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: message-hub-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: intelligence_db
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-    networks:
-      - message-hub-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # -------------------------------------------------------
-  # Redis Cache
-  # -------------------------------------------------------
-  redis:
-    image: redis:7-alpine
-    container_name: message-hub-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    networks:
-      - message-hub-net
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # -------------------------------------------------------
-  # MinIO S3 Storage
-  # -------------------------------------------------------
-  minio:
-    image: minio/minio
-    container_name: message-hub-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    restart: unless-stopped
-    networks:
-      - message-hub-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-
   # -------------------------------------------------------
   # Main Gateway Service
   # -------------------------------------------------------
@@ -97,13 +29,11 @@ services:
     env_file:
       - .env.prod
     environment:
-      # 数据库连接
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/intelligence_db
-      # Redis 连接
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      # S3 连接
-      - S3_ENDPOINT_URL=http://minio:9000
+      # 使用 NAS 上的服务
+      - DATABASE_URL=postgresql://postgres:postgres@192.168.1.2:45041/bs_generator_db
+      - REDIS_HOST=192.168.1.2
+      - REDIS_PORT=40967
+      - S3_ENDPOINT_URL=http://192.168.1.2:37163
       # 生产环境
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -123,15 +53,6 @@ services:
       options:
         max-size: "100m"
         max-file: "5"
-    networks:
-      - message-hub-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     deploy:
@@ -143,18 +64,8 @@ services:
           cpus: "0.25"
 
 # -------------------------------------------------------
-# Networks
-# -------------------------------------------------------
-networks:
-  message-hub-net:
-    driver: bridge
-
-# -------------------------------------------------------
 # Volumes
 # -------------------------------------------------------
 volumes:
-  postgres_data:
-  redis_data:
-  minio_data:
   message-hub-logs:
   message-hub-learnings:

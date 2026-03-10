@@ -28,7 +28,7 @@ class AIRouter:
         self.system_prompt = config.get("system_prompt") or get_prompt("intent_router")
         self.available_agents = config.get(
             "available_agents",
-            ["llm", "search", "intelligence", "bettafish", "mirofish"]
+            ["llm", "search", "intelligence"]
         )
 
     def _default_prompt(self) -> str:

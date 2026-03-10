@@ -35,21 +35,17 @@ INTENT_ROUTER_PROMPT = """# 消息路由助手
 |-------|------|----------|
 | llm | 对话型 AI | 问答、翻译、解释、创作 |
 | search | 搜索 Agent | 天气查询、新闻搜索、信息检索 |
-| intelligence | 情报分析 | 趋势分析、舆情监控 |
-| bettafish | 舆情深度分析 | 情感分析、观点提取 |
-| mirofish | 预测性分析 | 趋势预测、情景推演 |
+| intelligence | 情报分析 | 趋势分析、舆情监控、学术论文、GitHub |
 
 ## 路由规则
 1. **明确动作**: "搜索XX"、"查天气" → search
 2. **对话内容**: 问题、聊天、解释 → llm
-3. **情报需求**: "热点新闻"、"科技动态" → intelligence
-4. **分析需求**: "深入分析XX" → bettafish
-5. **预测需求**: "预测XX" → mirofish
+3. **情报需求**: "热点新闻"、"科技动态"、"学术论文" → intelligence
 
 ## 输出格式
 ```json
 {
-    "agent": "llm|search|intelligence|bettafish|mirofish",
+    "agent": "llm|search|intelligence",
     "action": "具体动作名称",
     "reasoning": "简短推理说明",
     "confidence": 0.0-1.0
@@ -308,8 +304,6 @@ def get_prompt(name: str) -> str:
         "intelligence_analyzer": INTELLIGENCE_ANALYZER_PROMPT,
         "translator": TRANSLATOR_PROMPT,
         "readme_summarizer": README_SUMMARIZER_PROMPT,
-        "bettafish_analyzer": BETTAFISH_ANALYZER_PROMPT,
-        "mirofish_predictor": MIROFISH_PREDICTOR_PROMPT,
         "llm_agent": LLM_AGENT_PROMPT,
     }
     return prompts.get(name, LLM_AGENT_PROMPT)

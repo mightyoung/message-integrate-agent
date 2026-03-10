@@ -8,29 +8,28 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        NAS Docker Network                        │
 │                                                                 │
-│  ┌──────────────┐    ┌──────────────┐                         │
-│  │   gateway    │    │   mihomo     │                         │
-│  │(Feishu WS)  │───▶│  (代理服务)  │                         │
-│  │   :8080      │    │  :7890       │                         │
-│  └──────────────┘    └──────────────┘                         │
-│         │                    │                                  │
-│         │            ┌──────▼──────┐                          │
-│         │            │  bettafish  │  舆情分析               │
-│         │            │   :5000     │                          │
-│         │            └─────────────┘                          │
-│         │                    │                                  │
-│         │            ┌──────▼──────┐                          │
-│         │            │  mirofish  │  预测分析               │
-│         │            │   :5001     │                          │
-│         │            └─────────────┘                          │
-│         │                                                     │
-│         │  飞书长连接 (WebSocket)                             │
-│         └─────────────────────────────────────────────────────▶ │
+│  ┌──────────────┐                                               │
+│  │   gateway    │                                               │
+│  │(Feishu WS)  │                                               │
+│  │   :8080      │                                               │
+│  └──────────────┘                                               │
+│         │                                                        │
+│         │  飞书长连接 (WebSocket)                               │
+│         └─────────────────────────────────────────────────────▶   │
 └─────────────────────────────────────────────────────────────────┘
          │
          ▼
    飞书服务器
    (wss://msg-frontier.feishu.cn)
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        NAS 存储服务                             │
+│                                                                 │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │ PostgreSQL    │  │    Redis     │  │   RustFs     │     │
+│  │   :45041      │  │    :40967    │  │   :37163     │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ## 新增功能 (v2.0)
@@ -59,20 +58,14 @@ message-hub/
 ├── docker-compose.prod.yml    # 部署配置
 ├── Dockerfile.prod            # 镜像构建
 ├── .env.prod                 # 环境变量
-├── bettafish/               # 舆情分析服务
-│   └── Dockerfile
-├── mirofish/                # 预测分析服务
-│   └── Dockerfile
-├── config/                  # 配置目录
-│   ├── clash/             # mihomo 配置
-│   ├── proxy.yaml
+├── config/                   # 配置目录
 │   └── settings.yaml
-└── DEPLOY.md               # 说明
+└── DEPLOY.md                # 说明
 ```
 
 ## 环境变量配置
 
-新增以下环境变量（需要在 `.env.prod` 中配置）：
+参考 `.env.prod.example` 配置以下环境变量：
 
 ```bash
 # ==================== LLM 配置 ====================
@@ -83,6 +76,20 @@ FIRECRAWL_API_KEY=fc-xxxxx         # Firecrawl API Key（用于抓取 Science.or
 
 # ==================== GitHub 配置（可选）===============
 GITHUB_TOKEN=ghp_xxxxx             # GitHub Token（提高 API 限流）
+
+# ==================== NAS 存储配置 ====================
+# PostgreSQL (NAS)
+DATABASE_URL=postgresql://postgres:postgres@192.168.1.2:45041/bs_generator_db
+
+# Redis (NAS)
+REDIS_HOST=192.168.1.2
+REDIS_PORT=40967
+
+# RustFs S3 (NAS)
+S3_ENDPOINT_URL=http://192.168.1.2:37163
+S3_ACCESS_KEY=your_access_key
+S3_SECRET_KEY=your_secret_key
+S3_BUCKET_NAME=mightyoung
 
 # ==================== 定时任务配置 ====================
 # 学术论文推送（每天 9:00）
@@ -100,13 +107,15 @@ INTELLIGENCE_CRON_SCIROBOTICS=0 11 30 * * *
 
 ## NAS 上执行
 
-### 1. 构建并启动所有服务
+### 1. 构建并启动服务
 
 ```bash
 cd /volume1/docker/message-hub/
 
-# 重新构建镜像（包含新增的 Firecrawl 和 Translator）
+# 重新构建镜像
 docker-compose -f docker-compose.prod.yml build
+
+# 启动服务
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
@@ -129,10 +138,14 @@ docker-compose -f docker-compose.prod.yml logs -f
 |------|------|
 | 8080 | Gateway HTTP |
 | 8081 | WebSocket |
-| 7890 | mihomo HTTP 代理 |
-| 5000 | BettaFish API (舆情分析) |
-| 5001 | MiroFish API (预测分析) |
-| 3000 | MiroFish Web UI |
+
+## NAS 存储服务
+
+| 服务 | 地址 | 端口 |
+|------|------|------|
+| PostgreSQL | 192.168.1.2 | 45041 |
+| Redis | 192.168.1.2 | 40967 |
+| RustFs S3 | 192.168.1.2 | 37163 |
 
 ## 飞书配置
 
@@ -140,16 +153,6 @@ docker-compose -f docker-compose.prod.yml logs -f
 
 - WebSocket 连接到 `wss://msg-frontier.feishu.cn`
 - 不需要公网 IP，客户端主动连接
-- 通过 mihomo 代理访问非中国大陆 IP
-
-## 代理规则 (mihomo)
-
-已配置智能路由：
-- **国内域名/IP**: 直连 (DIRECT)
-- **海外域名/IP**: 代理 (PROXY)
-- **飞书域名**: 直连
-
-配置文件: `config/clash/config.yaml`
 
 ## API 调用
 
@@ -169,24 +172,6 @@ curl -X POST http://localhost:8080/api/intelligence/push/science
 curl -X POST http://localhost:8080/api/intelligence/push/scirobotics
 ```
 
-### BettaFish 舆情分析
-
-```bash
-# 舆情分析
-curl -X POST http://localhost:5000/api/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"topic": "AI发展", "depth": "deep"}'
-```
-
-### MiroFish 预测分析
-
-```bash
-# 预测分析
-curl -X POST http://localhost:5001/api/simulate \
-  -H "Content-Type: application/json" \
-  -d '{"scenario": "科技发展", "steps": 10}'
-```
-
 ## 常用命令
 
 ```bash
@@ -201,26 +186,15 @@ docker-compose -f docker-compose.prod.yml restart
 
 # 查看日志
 docker-compose -f docker-compose.prod.yml logs -f gateway
-docker-compose -f docker-compose.prod.yml logs -f bettafish
-docker-compose -f docker-compose.prod.yml logs -f mirofish
-docker-compose -f docker-compose.prod.yml logs -f mihomo
 
 # 进入容器
 docker exec -it message-hub-gateway /bin/bash
-docker exec -it message-hub-bettafish /bin/bash
-docker exec -it message-hub-mirofish /bin/bash
 ```
 
 ## 常见问题
 
 ### Q: 无法连接飞书
-A: 检查 mihomo 是否正常运行: `docker-compose ps mihomo`
-
-### Q: BettaFish/MiroFish 启动失败
-A: 检查 DeepSeek API 配置是否正确: `docker-compose logs bettafish`
-
-### Q: 代理无法访问
-A: 检查 config/clash/config.yaml 中的代理节点是否有效
+A: 检查网络连接: `docker-compose logs gateway`
 
 ### Q: 情报推送失败
 A: 检查 FIRECRAWL_API_KEY 和 DEEPSEEK_API_KEY 是否配置正确
