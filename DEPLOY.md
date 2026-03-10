@@ -33,6 +33,23 @@
    (wss://msg-frontier.feishu.cn)
 ```
 
+## 新增功能 (v2.0)
+
+### 情报推送功能
+
+| 功能 | 说明 | 触发方式 |
+|------|------|----------|
+| 学术论文 | 从 arXiv 获取最新 AI 相关论文 | 定时任务 |
+| GitHub Trending | 获取热门开源项目 | 定时任务 |
+| Science 热点 | 从 Science.org 抓取热点研究 | 定时任务 |
+| SciRobotics | 机器人领域热点 | 定时任务 |
+
+### LLM 内容生成
+
+- **学术论文风格**: 顶级科学家思维（精准、简洁、包含核心发现）
+- **GitHub 仓库风格**: 顶级开源工程师思维（实用、创新、可扩展）
+- **新闻标题风格**: 顶级新闻编辑思维（简洁有力、倒金字塔结构）
+
 ## 上传到 NAS 的文件
 
 将以下文件上传到 NAS 的 `/volume1/docker/message-hub/` 目录：
@@ -53,6 +70,34 @@ message-hub/
 └── DEPLOY.md               # 说明
 ```
 
+## 环境变量配置
+
+新增以下环境变量（需要在 `.env.prod` 中配置）：
+
+```bash
+# ==================== LLM 配置 ====================
+DEEPSEEK_API_KEY=sk-xxxxx          # DeepSeek API Key（用于生成中文标题/概要）
+
+# ==================== Firecrawl 配置 ====================
+FIRECRAWL_API_KEY=fc-xxxxx         # Firecrawl API Key（用于抓取 Science.org）
+
+# ==================== GitHub 配置（可选）===============
+GITHUB_TOKEN=ghp_xxxxx             # GitHub Token（提高 API 限流）
+
+# ==================== 定时任务配置 ====================
+# 学术论文推送（每天 9:00）
+INTELLIGENCE_CRON_ACADEMIC=0 9 * * *
+
+# GitHub Trending 推送（每天 10:00）
+INTELLIGENCE_CRON_GITHUB=0 10 * * *
+
+# Science 热点推送（每天 11:00）
+INTELLIGENCE_CRON_SCIENCE=0 11 * * *
+
+# SciRobotics 推送（每天 11:30）
+INTELLIGENCE_CRON_SCIROBOTICS=0 11 30 * * *
+```
+
 ## NAS 上执行
 
 ### 1. 构建并启动所有服务
@@ -60,7 +105,7 @@ message-hub/
 ```bash
 cd /volume1/docker/message-hub/
 
-# 构建所有镜像并启动
+# 重新构建镜像（包含新增的 Firecrawl 和 Translator）
 docker-compose -f docker-compose.prod.yml build
 docker-compose -f docker-compose.prod.yml up -d
 ```
@@ -107,6 +152,22 @@ docker-compose -f docker-compose.prod.yml logs -f
 配置文件: `config/clash/config.yaml`
 
 ## API 调用
+
+### 手动触发情报推送
+
+```bash
+# 学术论文推送
+curl -X POST http://localhost:8080/api/intelligence/push/academic
+
+# GitHub Trending
+curl -X POST http://localhost:8080/api/intelligence/push/github
+
+# Science 热点
+curl -X POST http://localhost:8080/api/intelligence/push/science
+
+# SciRobotics
+curl -X POST http://localhost:8080/api/intelligence/push/scirobotics
+```
 
 ### BettaFish 舆情分析
 
@@ -160,3 +221,9 @@ A: 检查 DeepSeek API 配置是否正确: `docker-compose logs bettafish`
 
 ### Q: 代理无法访问
 A: 检查 config/clash/config.yaml 中的代理节点是否有效
+
+### Q: 情报推送失败
+A: 检查 FIRECRAWL_API_KEY 和 DEEPSEEK_API_KEY 是否配置正确
+
+### Q: Science 抓取失败
+A: Firecrawl 可能被限流，检查 API 配额: `docker-compose logs gateway | grep Firecrawl`
