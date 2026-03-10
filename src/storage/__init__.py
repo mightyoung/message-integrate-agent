@@ -6,6 +6,7 @@ from .s3_client import S3Client
 from .postgres_client import PostgresClient
 from .redis_client import RedisClient
 from .md_generator import MDGenerator, NewsItem
+from .storage_manager import StorageManager, get_storage_manager, create_storage_manager
 
 __all__ = [
     "S3Client",
@@ -13,4 +14,7 @@ __all__ = [
     "RedisClient",
     "MDGenerator",
     "NewsItem",
+    "StorageManager",
+    "get_storage_manager",
+    "create_storage_manager",
 ]

@@ -249,6 +249,20 @@ class FeishuAdapter(BaseAdapter):
                 if intent_result:
                     response = await self._execute_menu_intent(intent_result)
                     logger.info(f"[Feishu WS Menu] 处理完成: {intent_result.intent}")
+
+                    # 发送响应给用户
+                    if response:
+                        # 获取用户 ID 用于私聊回复
+                        target_id = user_id if user_id else ""
+                        logger.info(f"[Feishu WS Menu] 发送回复: target_id={target_id}")
+
+                        await self.send_message(
+                            chat_id=target_id,
+                            content=response,
+                            chat_type="direct",
+                            msg_type="text"
+                        )
+                        logger.info(f"[Feishu WS Menu] 响应已发送")
                 else:
                     logger.warning(f"[Feishu WS Menu] 无法处理菜单事件: {event_key}")
             else:
@@ -284,6 +298,20 @@ class FeishuAdapter(BaseAdapter):
                     if intent_result:
                         response = await self._execute_menu_intent(intent_result)
                         logger.info(f"[Feishu WS Menu] 处理完成: {intent_result.intent}")
+
+                        # 发送响应给用户
+                        if response:
+                            # 获取用户 ID 用于私聊回复
+                            target_id = user_id if user_id else ""
+                            logger.info(f"[Feishu WS Menu] 发送回复: target_id={target_id}")
+
+                            await self.send_message(
+                                chat_id=target_id,
+                                content=response,
+                                chat_type="direct",
+                                msg_type="text"
+                            )
+                            logger.info(f"[Feishu WS Menu] 响应已发送")
                     else:
                         logger.warning(f"[Feishu WS Menu] 无法处理菜单事件: {menu_event_id}")
 
@@ -362,9 +390,17 @@ class FeishuAdapter(BaseAdapter):
 
                 # 发送响应给用户
                 if response:
+                    # 判断是私聊还是群聊：如果 chat_id 为空，则是私聊
+                    chat_type = "group" if chat_id else "direct"
+                    # 私聊时使用 user_id 作为接收者
+                    target_id = chat_id if chat_id else user_id
+
+                    logger.info(f"[Feishu WS Message] 发送回复: chat_type={chat_type}, target_id={target_id}")
+
                     await self.send_message(
-                        chat_id=chat_id,
+                        chat_id=target_id,
                         content=response,
+                        chat_type=chat_type,
                         msg_type="text"
                     )
                     logger.info(f"[Feishu WS Message] 响应已发送")
@@ -425,7 +461,8 @@ class FeishuAdapter(BaseAdapter):
 
             await self.send_message(
                 chat_id=chat_id,
-                content=welcome_message
+                content=welcome_message,
+                chat_type="direct"
             )
             logger.info(f"[Feishu WS Bot Entered] 欢迎消息已发送")
 
@@ -481,6 +518,84 @@ class FeishuAdapter(BaseAdapter):
 
         return None
 
+    async def _execute_intelligence_pipeline(
+        self,
+        category: str,
+        user_id: str,
+    ) -> str:
+        """执行情报流水线并返回结果
+
+        Args:
+            category: 分类 (hot/tech/ai/investment/report)
+            user_id: 用户ID
+
+        Returns:
+            格式化的情报消息
+        """
+        try:
+            # 导入流水线
+            from src.intelligence.pipeline import IntelligencePipeline, PipelineConfig
+
+            # 确定语言
+            lang = "zh" if category in ["hot", "investment"] else "en"
+
+            # 创建配置
+            config = PipelineConfig(
+                rss_categories=[category],
+                rss_lang=lang,
+                rss_max_tier=2,
+            )
+
+            # 创建流水线
+            pipeline = IntelligencePipeline(config)
+
+            # 执行流水线
+            logger.info(f"[Feishu] 执行情报流水线: category={category}, user={user_id}")
+            result = await pipeline.process(user_id=user_id)
+
+            # 格式化结果
+            status = result.get("status")
+            fetched = result.get("fetched", 0)
+            top_items = result.get("top_items", [])
+
+            if status == "completed" and top_items:
+                # 格式化输出
+                lines = ["📊 今日情报\n"]
+
+                for i, item in enumerate(top_items[:5], 1):
+                    title = item.get("title", "无标题")[:50]
+                    category_item = item.get("category", "未知")
+                    score = item.get("score", 0)
+                    int_id = item.get("intelligence_id", f"#{i}")
+                    url = item.get("url", "")
+                    summary = item.get("summary", "")
+
+                    lines.append(f"{i}. {title}")
+
+                    # 添加概要
+                    if summary:
+                        lines.append(f"   📝 {summary}...")
+
+                    lines.append(f"   🏷️ {category_item} | ⭐ {score:.2f} | ID: {int_id}")
+
+                    # 添加原文链接
+                    if url:
+                        lines.append(f"   🔗 {url}")
+
+                lines.append(f"\n共获取 {fetched} 条情报")
+                lines.append("\n" + "━" * 20)
+                lines.append("💬 回复评价格式:")
+                lines.append("  👍/👎 + ID (如: 👍 int_123456)")
+                lines.append("  或回复: 好/差 + 编号 (如: 好 1)")
+
+                return "\n".join(lines)
+            else:
+                return f"📰 暂无新的{category}情报"
+
+        except Exception as e:
+            logger.error(f"[Feishu] 执行情报流水线失败: {e}")
+            return f"⚠️ 获取情报失败: {str(e)}"
+
     async def send_message(
         self,
         chat_id: str,
@@ -492,7 +607,7 @@ class FeishuAdapter(BaseAdapter):
         Send a message to a Feishu chat.
 
         Args:
-            chat_id: The target chat ID
+            chat_id: The target chat ID or user ID (open_id for direct messages)
             content: Message content
             chat_type: Type of chat (direct, group)
         """
@@ -505,11 +620,14 @@ class FeishuAdapter(BaseAdapter):
         if not token:
             return False
 
+        # 私聊使用 open_id，群聊使用 chat_id
+        receive_id_type = "open_id" if chat_type == "direct" else "chat_id"
+
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.api_base}/im/v1/messages",
-                    params={"receive_id_type": "chat_id"},
+                    params={"receive_id_type": receive_id_type},
                     headers={"Authorization": f"Bearer {token}"},
                     json={
                         "receive_id": chat_id,
@@ -517,6 +635,7 @@ class FeishuAdapter(BaseAdapter):
                         "content": f'{{"text": "{content}"}}',
                     }
                 )
+                logger.info(f"[Feishu send_message] receive_id_type={receive_id_type}, chat_id={chat_id}, status={response.status_code}")
                 return response.status_code == 200
         except Exception as e:
             logger.error(f"Failed to send Feishu message: {e}")
@@ -707,11 +826,14 @@ class FeishuAdapter(BaseAdapter):
         """
         intent = intent_result.intent
         params = intent_result.params
+        user_id = intent_result.user_id
 
         try:
             # ==================== 情报类意图 ====================
             if intent == "view_hot_news":
-                return "📰 正在获取热点新闻，请稍候...\n\n(功能开发中)"
+                # 执行情报流水线
+                result = await self._execute_intelligence_pipeline("hot", user_id)
+                return result
 
             elif intent == "view_category_news":
                 category = params.get("category", "tech")
@@ -722,7 +844,9 @@ class FeishuAdapter(BaseAdapter):
                     "report": "行业报告"
                 }
                 category_name = category_names.get(category, category)
-                return f"📰 正在获取{category_name}，请稍候...\n\n(功能开发中)"
+                # 执行情报流水线
+                result = await self._execute_intelligence_pipeline(category, user_id)
+                return result
 
             # ==================== 搜索类意图 ====================
             elif intent == "search_intelligence":
@@ -1013,7 +1137,8 @@ class FeishuAdapter(BaseAdapter):
                         if response:
                             await self.send_message(
                                 chat_id=user_id,  # 私聊发送
-                                content=response
+                                content=response,
+                                chat_type="direct"
                             )
 
                         logger.info(f"[Feishu Menu] Executed: {intent_result.intent}")
@@ -1045,7 +1170,9 @@ class FeishuAdapter(BaseAdapter):
 
                     if feedback_response:
                         # 发送反馈响应消息
-                        await self.send_message(chat_id, feedback_response)
+                        # 判断是私聊还是群聊
+                        chat_type = "group" if chat_id.startswith("oc_") else "direct"
+                        await self.send_message(chat_id, feedback_response, chat_type=chat_type)
 
                     return self._parse_message(message)
 

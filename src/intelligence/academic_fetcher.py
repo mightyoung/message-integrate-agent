@@ -397,3 +397,112 @@ class AcademicFetcher:
 def create_academic_fetcher() -> AcademicFetcher:
     """创建学术论文获取器"""
     return AcademicFetcher()
+
+
+class HuggingFaceFetcher:
+    """HuggingFace Papers 获取器
+
+    使用 HuggingFace Papers API: https://huggingface.co/papers
+    获取最新 AI/ML 论文
+    """
+
+    def __init__(self, max_results: int = 10):
+        self.max_results = max_results
+        self.base_url = "https://huggingface.co/api/papers"
+
+    async def fetch(self, query: Optional[str] = None) -> List[AcademicPaper]:
+        """获取 HuggingFace 论文
+
+        Args:
+            query: 搜索关键词，默认获取最新论文
+
+        Returns:
+            List[AcademicPaper]: 论文列表
+        """
+        papers = []
+
+        try:
+            # 获取最新论文
+            params = {
+                "limit": self.max_results,
+            }
+            if query:
+                params["query"] = query
+
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+                response = await client.get(self.base_url, params=params)
+
+                if response.status_code == 200:
+                    data = response.json()
+                    papers = self._parse_response(data)
+
+        except Exception as e:
+            logger.error(f"HuggingFace papers fetch error: {e}")
+
+        return papers
+
+    def _parse_response(self, data: List[Dict]) -> List[AcademicPaper]:
+        """解析响应数据"""
+        papers = []
+
+        try:
+            for item in data:
+                try:
+                    # 提取标题
+                    title = item.get("title", "")
+
+                    # 提取摘要
+                    abstract = item.get("abstract", "")
+
+                    # 提取链接
+                    paper_id = item.get("id", "")
+                    url = f"https://huggingface.co/papers/{paper_id}" if paper_id else ""
+
+                    # 提取作者
+                    authors = []
+                    for author in item.get("authors", []):
+                        if isinstance(author, dict):
+                            authors.append(author.get("name", ""))
+                        elif isinstance(author, str):
+                            authors.append(author)
+
+                    # 提取发布日期
+                    published_date = None
+                    date_str = item.get("published")
+                    if date_str:
+                        try:
+                            published_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                        except:
+                            pass
+
+                    # 提取分类/标签
+                    categories = item.get("tags", [])
+
+                    # 提取点赞数
+                    citations = item.get("likes", 0)
+
+                    if title:
+                        papers.append(AcademicPaper(
+                            source="huggingface",
+                            title=title,
+                            url=url,
+                            authors=authors,
+                            abstract=abstract[:500] if abstract else "",
+                            published_date=published_date,
+                            categories=categories,
+                            citations=citations,
+                        ))
+
+                except Exception as e:
+                    logger.debug(f"Error parsing HuggingFace paper: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error parsing HuggingFace response: {e}")
+
+        return papers
+
+
+def create_huggingface_fetcher() -> HuggingFaceFetcher:
+    """创建 HuggingFace 论文获取器"""
+    return HuggingFaceFetcher()

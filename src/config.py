@@ -10,6 +10,15 @@ import yaml
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# 加载环境变量
+from dotenv import load_dotenv
+
+# 尝试加载 .env.prod (生产环境) 或 .env (本地开发)
+_env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env.prod")
+if not os.path.exists(_env_file):
+    _env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(_env_file)
+
 
 def resolve_env_vars(value):
     """Resolve ${VAR} environment variable placeholders in a string."""

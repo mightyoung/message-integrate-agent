@@ -67,8 +67,10 @@ from .academic_fetcher import (
     AcademicFetcher,
     ArxivFetcher,
     PubMedFetcher,
+    HuggingFaceFetcher,
     AcademicPaper,
     create_academic_fetcher,
+    create_huggingface_fetcher,
 )
 from .intake import (
     InformationIntake,
@@ -135,7 +137,9 @@ __all__ = [
     "AcademicFetcher",
     "ArxivFetcher",
     "PubMedFetcher",
+    "HuggingFaceFetcher",
     "AcademicPaper",
+    "create_huggingface_fetcher",
     "create_academic_fetcher",
     "InformationIntake",
     "IntelligenceItem",
