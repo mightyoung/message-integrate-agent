@@ -33,18 +33,18 @@ dns:
 
 # 代理节点
 proxies:
-  # VMess 节点 (请替换为您的代理配置)
+  # VMess 节点
   - name: "vmess-primary"
     type: vmess
-    server: your-server.example.com
-    port: 12345
-    uuid: 00000000-0000-0000-0000-000000000000
+    server: c59s3.portablesubmarines.com
+    port: 16255
+    uuid: 917f15f7-e9b8-47b3-87df-51b36fe63e8b
     alterId: 0
     cipher: auto
     network: tcp
     tls: true
     skip-cert-verify: true
-    servername: your-server.example.com
+    servername: c59s3.portablesubmarines.com
 
 # 代理组
 proxy-groups:
