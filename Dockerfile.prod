@@ -16,7 +16,7 @@
 # ============================================================
 # Stage 1: Builder - 安装依赖
 # ============================================================
-FROM mirror.gcr.io/library/python:3.11-slim AS builder
+FROM python:3.11-slim AS builder
 
 # 安装构建工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel && \
 # ============================================================
 # Stage 2: Runtime - 运行镜像
 # ============================================================
-FROM mirror.gcr.io/library/python:3.11-slim AS runtime
+FROM python:3.11-slim AS runtime
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
