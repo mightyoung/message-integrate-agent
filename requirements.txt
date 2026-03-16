@@ -14,6 +14,7 @@ mcp[cli]>=1.1.0
 # Messaging platforms
 aiogram>=3.4.0
 httpx
+beautifulsoup4>=4.12.0
 lark-oapi>=1.5.0
 
 # Logging

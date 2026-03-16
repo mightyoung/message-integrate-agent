@@ -58,6 +58,18 @@ Inspired by OpenClaw's autonomous agent design:
 - Model Context Protocol for tool exposure
 - Search, LLM, Weather tools readily available
 
+#### 📊 Sentiment Analysis
+- Sentiment analysis for stored intelligence
+- Positive/Negative/Neutral classification
+- LLM-powered deep analysis
+- Usage: `analyze id=123456`
+
+#### 🔮 Prediction Analysis
+- Future trend prediction based on content
+- Supports URL or text input
+- Multi-dimensional scenario projection with probability assessment
+- Usage: `predict https://news.example.com` or `predict AI technology trends`
+
 ### Architecture
 
 ```
@@ -221,6 +233,18 @@ MIT License - see [LICENSE](LICENSE) for details.
 #### 🔧 MCP 集成
 - Model Context Protocol 工具暴露
 - 搜索、LLM、天气等工具开箱即用
+
+#### 📊 舆情分析
+- 对已存储情报进行情感分析
+- 支持正向/负向/中性情感判断
+- 使用 LLM 进行深度分析
+- 使用方式: `分析 id=123456`
+
+#### 🔮 预测分析
+- 基于内容进行未来趋势预测
+- 支持 URL 或文本输入
+- 多维度情景推演与概率评估
+- 使用方式: `预测 https://news.example.com` 或 `预测 某项技术的发展趋势`
 
 ### 架构
 
